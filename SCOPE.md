@@ -58,13 +58,15 @@ graph TD
         G --> GVR[governance-service<br/>3011]
         G --> CPLY[compliance-service<br/>3012]
         G --> PS[physical-security-service<br/>3004]
+        G --> MKT[marketplace-service<br/>3015]
+        G --> ANL[analytics-service<br/>3016]
     end
     classDef frontend fill:#4A90E2,stroke:#333,color:white;
     classDef gateway fill:#50E3C2,stroke:#333,color:black;
     classDef backend fill:#F5A623,stroke:#333,color:black;
     class A,B,C frontend
     class G gateway
-    class I,U,T,S,N,D,F,P,H,M,V,GVR,CPLY,PS backend
+    class I,U,T,S,N,D,F,P,H,M,V,GVR,CPLY,PS,MKT,ANL backend
 ```
 
 ---
@@ -209,19 +211,28 @@ Cada servicio es autónomo, desplegable de forma independiente, y sigue el princ
     *   Gestionar perfiles regulatorios por país y tipo de propiedad.
     *   Adaptación multi-país.
 
-Adiciones
----
-### **3.16. `marketplace-service` (Puerto 3013)**
- **Alcance:Permite a los administradores y propietarios contratar servicios legales, de mantenimiento, asesoría financiera, etc., directamente desde la plataforma, generando una comisión recurrente para SmartEdify. pero se expande a maintenance, rrhh-service
-Beneficios Clave:
-
----
-### **3.17. `analytics-service` (Puerto 3014)**
- **Alcance:Proporciona insights predictivos y descriptivos sobre la participación, los temas más votados, la satisfacción de los propietarios, etc., permitiendo a las juntas directivas tomar decisiones proactivas y a SmartEdify ofrecer módulos premium de inteligencia de negocio. pero se expande a maintenance, rrhh-service
-Monetización: Nuevos flujos de ingresos por comisiones y suscripciones premium.
-*    **Engagement: Los propietarios ven valor añadido más allá de la votación.
-*    **Toma de Decisiones: Las juntas directivas pueden actuar con base en datos, no en intuición.
-*    **Diferenciación Competitiva: SmartEdify no es solo un software de asambleas; es una plataforma de servicios y datos para comunidades inteligentes.
+3.15. marketplace-service (Puerto 3015) — ¡NUEVO!
+Alcance: Crear un ecosistema de servicios premium para los condominios, generando un nuevo flujo de ingresos recurrente para SmartEdify.
+Responsabilidades Clave:
+Catálogo de Servicios: Listar y gestionar proveedores de servicios legales, de mantenimiento, asesoría contable, seguros, etc.
+Flujos de Contratación: Permitir a los administradores cotizar, contratar y pagar servicios directamente desde la plataforma.
+Revisión de Actas por Abogado: Integración con abogados certificados que revisan y certifican la validez legal de las actas generadas por el MCP.
+Asesoría Legal en Vivo: Permitir que un abogado se una como “observador legal” a una asamblea en vivo para dar consejos en tiempo real.
+Comisiones y Pagos: Gestionar las comisiones de SmartEdify por cada servicio contratado.
+Integraciones Clave: governance-service (para revisiones de actas), finance-service (para pagos), notifications-service (para alertas de ofertas).
+3.16. analytics-service (Puerto 3016) — ¡NUEVO!
+Alcance: Proporcionar inteligencia de negocio a administradores y juntas directivas mediante dashboards y reportes basados en datos, ofrecido como un módulo premium.
+Responsabilidades Clave:
+Ingesta de Datos: Consumir eventos de todos los microservicios (asambleas, votaciones, pagos, mantenimiento) y almacenarlos en un data warehouse (por ejemplo, Amazon Redshift o Snowflake).
+Dashboards de Insights:
+“Tasa de participación por tipo de propietario (residente vs. no residente).”
+“Temas más votados y su correlación con la satisfacción del propietario.”
+“Predicción de quórum para la próxima asamblea basada en tendencias históricas.”
+“Eficiencia del gasto en mantenimiento por tipo de activo.”
+Reportes Personalizados: Permitir a los administradores crear reportes ad-hoc.
+Modelos Predictivos: Usar ML para predecir morosidad, necesidad de mantenimiento, o riesgo de impugnación de asambleas.
+Integraciones Clave: Todos los servicios. Es el consumidor final de los eventos del sistema.
+Modelo de Negocio: Ofrecido como un módulo premium con suscripción mensual/anual.
 ---
 ## 🌐 **4. Estrategia Multi-País y Localización**
 
