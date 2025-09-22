@@ -31,7 +31,79 @@ Con una arquitectura de microservicios altamente modular y un motor de cumplimie
 ### **2.2. Diagrama de Componentes (Alto Nivel)**
 
 ```mermaid
+graph TD
+    subgraph Frontend
+        A[User Web<br/>Puerto 3000] --> G
+        B[Admin Web<br/>Puerto 4000] --> G
+        C[Mobile App<br/>Puerto 8081] --> G
+    end
 
+    subgraph Gateway
+        G[API Gateway<br/>Puerto 8080] 
+    end
+
+    subgraph Core Backend Services
+        G --> I[identity-service<br/>3001]
+        G --> U[user-profiles-service<br/>3002]
+        G --> T[tenancy-service<br/>3003]
+        G --> N[notifications-service<br/>3005]
+        G --> D[documents-service<br/>3006]
+        G --> F[finance-service<br/>3007]
+        G --> P[payroll-service<br/>3008]
+        G --> H[hr-compliance-service<br/>3009]
+        G --> M[asset-management-service<br/>3010]
+        G --> V[reservation-service<br/>3013]
+        G --> GVR[governance-service<br/>3011]
+        G --> CPLY[compliance-service<br/>3012]
+        G --> S[physical-security-service<br/>3004]
+    end
+
+    %% Comunicación Asíncrona (Eventos)
+    I -.-> N
+    U -.-> N
+    T -.-> N
+    F -.-> N
+    M -.-> N
+    GVR -.-> N
+    V -.-> N
+    S -.-> N
+
+    %% Dependencias Clave de Servicios
+    GVR --> T
+    GVR --> F
+    GVR --> CPLY
+    GVR --> D
+
+    F --> T
+    F --> CPLY
+
+    V --> M
+    V --> F
+
+    M --> T
+    M --> S
+
+    P --> H
+    P --> F
+
+    H --> CPLY
+
+    S --> T
+
+    D --> CPLY
+    D --> GVR
+
+    CPLY --> T
+    CPLY --> I
+    CPLY --> U
+
+    classDef frontend fill:#4A90E2,stroke:#333,color:white;
+    classDef gateway fill:#50E3C2,stroke:#333,color:black;
+    classDef backend fill:#F5A623,stroke:#333,color:black;
+
+    class A,B,C frontend
+    class G gateway
+    class I,U,T,N,D,F,P,H,M,V,GVR,CPLY,S backend
 
 ```
 ---
