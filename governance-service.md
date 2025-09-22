@@ -95,6 +95,7 @@ graph TD
 *   **Emisión de la Convocatoria Formal (Obligatoria por el Administrador):**
     *   El sistema notifica al Administrador: *“Obligación de emitir la convocatoria en un plazo definido por el `compliance-service`.”*
     *   El Administrador elige la fecha/hora (respetando el plazo mínimo de anticipación definido por el `compliance-service`) y emite la `AssemblyNotice`.
+    *   se validan los flujos de revision y aprobacion de asambleas por el `compliance-service`.” en caso de ser observada se devuelve al administrador, e re-inicia el flujo.
     *   Se inicia la **Saga de Inmutabilidad**: generación de PDF, firma digital, hashing, notificación multicanal.
 
 ### **3.3. Gestión de la Sesión Híbrida (Virtual/Mixta)**
