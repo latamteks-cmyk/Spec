@@ -30,22 +30,10 @@ Con una arquitectura de microservicios altamente modular y un motor de cumplimie
 
 ### **2.2. Diagrama de Componentes (Alto Nivel)**
 
-```
-[User Web]  [Admin Web]  [Mobile App]
-       \        |        /
-        \       |       /
-         \      |      /
-          [ API GATEWAY ] (8080)
-                 |
-    -------------------------------
-    |        |        |         |
-[identity] [user-profiles] [tenancy] [notifications] ...
-    |        |        |         |
-[finance] [payroll] [hr-compliance] [asset-management] ...
-    |        |        |         |
-[governance] [reservation] [physical-security] [compliance] [documents]
-```
+```mermaid
 
+
+```
 ---
 
 ## 📦 **3. Especificación de Microservicios (13 Servicios)**
