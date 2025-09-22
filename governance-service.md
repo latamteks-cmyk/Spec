@@ -79,9 +79,9 @@ graph TD
 
 *   **Crear/Editar/Eliminar Asamblea (Solo Administrador):**
     *   Definir título, descripción, fecha/hora, modalidad (`Presencial`, `Virtual`, `Mixta`).
+    *   Definir los puntos de agenda con los adjuntos vinculados a cada punto de ser necesario.
     *   Asignar un código único (ej: `ASM-2025-001`).
     *   Adjuntar documentos relevantes (reglamento, presupuestos).
-    *   Configurar reglas de sala: duración máxima por intervención, número de ampliaciones, política de micrófonos.
     *   **NO asignar un moderador designado.** El moderador se elige al inicio de la reunión.
 
 ### **3.2. Flujos de Iniciativa y Emisión de Convocatoria**
@@ -98,7 +98,7 @@ graph TD
     *   Se inicia la **Saga de Inmutabilidad**: generación de PDF, firma digital, hashing, notificación multicanal.
 
 ### **3.3. Gestión de la Sesión Híbrida (Virtual/Mixta)**
-
+*   Configurar reglas de sala: duración máxima por intervención, número de ampliaciones, política de micrófonos.
 *   **Validación de Asistencia (Múltiples Métodos):**
     *   **QR Dinámico (Optimizado):** El usuario valida su asistencia escaneando un QR que aparece en su propia pantalla, usando la cámara del mismo dispositivo. El sistema usa librerías como `jsQR` para detectar y decodificar el QR automáticamente.
     *   **Biometría (Opcional):** El usuario valida su asistencia con huella dactilar o reconocimiento facial (Touch ID, Face ID, BiometricPrompt).
