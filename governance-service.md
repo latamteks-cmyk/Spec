@@ -1,4 +1,4 @@
-# 📘 **Especificación Técnica: `governance-service` (Puerto 3011) — Versión 0.0**
+# 📘 **Especificación Técnica: `governance-service` (Puerto 3011) — Versión 2.0**
 > **Metodología:** `github/spec-kit`  
 > **Versión:** `2.0`  
 > **Estado:** `Vision Global - Para inicio del desarrollo spec`  
