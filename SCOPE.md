@@ -1,6 +1,6 @@
 # 📘 **SmartEdify Global — Especificación Técnica del Sistema**
 
-> **Estado:** `Diseño Final — Listo para Implementación`  
+> **Estado:** `Vision Global - Para inicio del desarrollo spec`  
 > **Alcance:** Plataforma Global de Gobernanza y Gestión de Condominios Multi-País  
 > **Visión:** Convertir a SmartEdify en el sistema operativo digital para comunidades residenciales y comerciales en Latinoamérica y Europa, garantizando cumplimiento legal local, transparencia operativa y participación comunitaria inteligente.
 
