@@ -1,314 +1,171 @@
-# README — Especificación y Desarrollo sin agente específico (modo “Spec-Kit manual”)
+# README — Ingesta de documentos y actualización de especificaciones funcionales
 
-## Objetivo
+## Propósito
 
-Definir cómo preparar y ejecutar el proyecto bajo un enfoque de **Spec-Driven Development** sin usar el CLI de Spec-Kit. Usaremos **Codex** u otro asistente para ir generando artefactos, pero la estructura y el proceso son manuales. Nota: el README oficial de Spec-Kit indica que **Codex CLI no soporta argumentos personalizados en “slash commands”**, por eso aquí operamos sin comandos del kit.
+Estandarizar cómo **Codex / Gemini / Copilot** tomarán un documento adjunto y, usando **SCOPE.md** y este README, **actualizarán la documentación funcional** del proyecto. Esta fase se limita a **especificaciones funcionales**; cuando estén maduras se solicitará pasar a **planificación**.
+
+## Prerrequisitos
+
+* `SCOPE.md` actualizado con servicios y vertical slices priorizados.
+* Estructura mínima:
+
+  ```
+  .
+  ├── SCOPE.md
+  ├── README.md
+  ├── templates/specs/{spec-template.md, plan-template.md, data-model-template.md, tasks-template.md, ...}
+  ├── prompts/{spec.prompt.md, plan.prompt.md, data-model.prompt.md, tasks.prompt.md, ...}
+  └── specs/
+      └── NNN-<slug>/
+          ├── spec.md
+          ├── plan.md
+          ├── data-model.md
+          ├── tasks.md
+          └── contracts/{openapi.yaml, pact/}
+  ```
+* Los slices existentes deben tener `spec.md` basado en `templates/specs/spec-template.md`.
+
+## Comando para el IDE/Asistente
+
+> **Úsalo tal cual en Codex/Gemini/Copilot al adjuntar un archivo fuente (PDF/DOC/MD):**
+>
+> **“Analiza el documento adjunto, y en base a los servicios indicados en SCOPE.md, y a las directrices del README.md, actualizar la documentación funcional que es afectada del proyecto; en caso de ambigüedad y/o contradicción con los documentos existentes realizar la consulta.”**
+
+## Regla de oro
+
+* **No inventar servicios ni endpoints.** Si el documento sugiere algo no contemplado en `SCOPE.md`, **proponer** cambio y **preguntar** antes de modificar.
+* **No borrar información aprobada.** Si hay conflicto, **marcarlo** y solicitar validación.
+
+## Flujo operativo (IDE)
+
+1. **Leer contexto**: `SCOPE.md`, `README.md`, `specs/**/spec.md` relevantes.
+2. **Extraer del adjunto**: requisitos, reglas, casos de uso, criterios de aceptación y supuestos.
+3. **Enrutar por servicio** según `SCOPE.md`:
+
+   * Si afecta un slice existente: **actualizar su `spec.md`**.
+   * Si amerita un nuevo slice: **proponer carpeta** `specs/NNN-<slug>/` con `spec.md` inicial.
+4. **Actualizar documentación funcional**:
+
+   * Editar solo secciones funcionales: contexto, objetivos, usuarios, historias, criterios de aceptación, fuera de alcance, riesgos, métricas, flags y observabilidad.
+   * Agregar **“Servicios afectados”** y **trazabilidad** indicando capítulo/página del adjunto.
+5. **Generar manifiesto de corrida** en `runs/<YYYY-MM-DD>/<run-id>.yaml`:
+
+   ```yaml
+   run_id: 2025-09-22-001
+   sources:
+     - file: <nombre-archivo-adjunto>
+       sections: [ ... ]
+   routing:
+     - slice: NNN-<slug>
+       services: [ svc-a, svc-b ]
+       files_changed: [ specs/NNN-<slug>/spec.md ]
+   flags:
+     require_owner_approval: [legal_impact, contract_change, data_model_change, security_impact]
+   notes: ["ambigüedad en ...", "contradicción con ..."]
+   ```
+6. **Detección de ambigüedad/contradicción**:
+
+   * Si el adjunto contradice `spec.md` o es incompleto: **no sobreescribir**. Insertar bloque:
+
+     ```
+     > PENDIENTE: Ambigüedad/contradicción detectada [referencia]. Requiere confirmación del Owner.
+     ```
+   * Crear comentario de salida para el IDE con preguntas puntuales.
+7. **Salida**:
+
+   * `specs/**/spec.md` actualizados.
+   * `runs/<date>/<run-id>.yaml` + `runs/<date>/<run-id>-changelog.md` con resumen de cambios.
+
+## Qué se actualiza en esta fase
+
+* **Solo documentación funcional**: `spec.md`.
+* **No** tocar `plan.md`, `data-model.md`, `contracts/` ni `tasks.md` salvo que el Owner lo pida explícitamente.
+
+## Criterios de edición en `spec.md`
+
+* Historias con **criterios de aceptación verificables**.
+* **Fuera de alcance** explícito para evitar creep.
+* **Riesgos y supuestos** con referencia al adjunto.
+* **Métricas de éxito** simples.
+* **Feature flags** y **observabilidad** mínimas descritas.
+* **Servicios afectados**: lista y breve impacto funcional por servicio.
+
+## Trigger para pasar a planificación
+
+El Owner indicará al IDE: “continuar a planificación”. Entonces:
+
+* Usar `prompts/plan.prompt.md` sobre el `spec.md` ya validado.
+* Generar o actualizar `plan.md`, luego `data-model.md`, `contracts/`, `tasks.md`.
+
+## Reglas de validación humana obligatoria
+
+Si el IDE detecta alguno de estos impactos al interpretar el adjunto, **debe consultar antes de editar**:
+
+* `legal_impact` (normativas, cumplimiento).
+* `contract_change` (cambios a API o eventos).
+* `data_model_change` (tablas, claves).
+* `security_impact` (autorización, auditoría, cifrado).
+
+## Estructura recomendada de `spec.md`
+
+Usar `templates/specs/spec-template.md`. Secciones mínimas:
+
+```
+# <NNN>-<slug>: Spec
+## Contexto
+## Objetivos
+## Usuarios y casos de uso
+## Historias de usuario
+### Criterios de aceptación
+## Servicios afectados
+## Fuera de alcance
+## Supuestos y riesgos
+## Métricas de éxito
+## Flags y observabilidad
+## Trazabilidad a documentos fuente
+```
+
+## Estándares de trazabilidad
+
+* En cada bloque nuevo o modificado, añadir al final una cita breve:
+
+  * `Fuente: <adjunto>, cap X.Y (p. ZZ)`
+* En `runs/<run-id>-changelog.md` listar:
+
+  * Slices tocados, secciones modificadas, referencias al adjunto y motivo.
+
+## Ejemplo de uso paso a paso
+
+1. Adjunta el PDF/DOC.
+2. Ejecuta el comando indicado arriba.
+3. Revisa preguntas del IDE si marca ambigüedades.
+4. Aprobado el `spec.md`, instruye: “continuar a planificación para \<NNN-<slug>>”.
+
+## Convenciones y estilo
+
+* Español claro, voz impersonal.
+* Sin decisiones técnicas profundas en `spec.md`.
+* Criterios de aceptación con condiciones observables.
+* No cambiar títulos de secciones sin necesidad.
+
+## Mensajería de salida para el IDE
+
+Plantilla de comentario que el IDE debe producir al finalizar:
+
+```
+Actualizaciones propuestas:
+- Slice: NNN-<slug> → specs/NNN-<slug>/spec.md (secciones: Historias, CA, Riesgos)
+- Servicios afectados: [svc-a, svc-b]
+- Ambigüedades: [...]; Preguntas: [...]
+- Manifiesto: runs/YYYY-MM-DD/<run-id>.yaml
+Confirma o corrige. Si validas, indicar: “continuar a planificación”.
+```
+
+## Checklist del Owner por corrida
+
+* [ ] Cambios funcionales coherentes con `SCOPE.md`
+* [ ] Ambigüedades resueltas o marcadas
+* [ ] `runs/<date>/<run-id>.yaml` generado
+* [ ] OK para “continuar a planificación” o solicitar ajustes
 
 ---
-
-## Estructura del repositorio
-
-```
-.
-├── SCOPE.md                         # alcance global y criterios de priorización
-├── memory/
-│   ├── constitution.md              # principios de ingeniería y calidad
-│   └── constitution_update_checklist.md
-├── scripts/
-│   ├── create-feature.sh            # genera /specs/NNN-slug con plantillas
-│   └── verify-readiness.sh          # checks previos a merge y release
-├── specs/
-│   └── 001-<slug>/
-│       ├── spec.md                  # especificación funcional (scope por feature)
-│       ├── plan.md                  # plan técnico e impacto arquitectónico
-│       ├── data-model.md            # entidades, esquemas, migraciones
-│       ├── contracts/
-│       │   ├── openapi.yaml         # contratos HTTP
-│       │   └── pact/                # contratos Pact para consumidores/proveedores
-│       ├── tasks.md                 # backlog accionable del slice
-│       ├── quickstart.md            # cómo ejecutar/ver el slice
-│       └── research.md              # decisiones, pros/cons, referencias
-├── .github/
-│   └── workflows/
-│       ├── pr.yml                   # lint + unit + integration + build en PR
-│       ├── main-staging.yml         # entorno efímero + E2E al merge a main
-│       └── deploy-prod.yml          # despliegue tras E2E ok o aprobación
-└── README.md
-```
-
----
-
-## Fuente de verdad
-
-* **SCOPE.md**: actualizar antes de cada ciclo. Contiene objetivos, límites, riesgos, supuestos y la lista priorizada de “vertical slices”.
-* Cada feature vive en `specs/NNN-<slug>/` con artefactos propios. Evitar duplicar contenido entre `SCOPE.md` y `spec.md`.
-
----
-
-## Flujo de trabajo
-
-1. **Principios del proyecto**
-   Crear o actualizar `memory/constitution.md` con estándares de código, testing, UX, performance y seguridad. Mantener `constitution_update_checklist.md`.
-
-2. **Refinar alcance global**
-   Revisar `SCOPE.md`. Confirmar criterios de aceptación globales, definición de “hecho” y el orden de slices.
-
-3. **Crear un slice**
-   Ejecutar `scripts/create-feature.sh 001 <slug>` o replicar la carpeta plantilla. Completar:
-
-   * `spec.md`: problema, usuarios, historias, criterios de aceptación, no-objetivos.
-   * `plan.md`: arquitectura, componentes, decisiones, migraciones, riesgos, rollback.
-   * `data-model.md`: ERD, tablas, índices, eventos, versionado de esquemas.
-   * `contracts/`: `openapi.yaml` y, si aplica, contratos **Pact**.
-   * `tasks.md`: tareas atómicas derivadas del plan, ordenadas y estimadas.
-
-4. **Implementar por Vertical Slice**
-   Rama `feature/NNN-<slug>`. Entregar **backend + frontend + pruebas** del slice antes del siguiente.
-
-5. **Flags de funcionalidad**
-   Encapsular cambios detrás de **feature flags** (LaunchDarkly/Unleash/DB). Mantener toggles por entorno.
-
-6. **Revisión y merge**
-   Todo PR requiere al menos **2 revisores**. Política de calidad: checks verdes obligatorios.
-
-7. **CI/CD**
-
-   * En cada PR: **Lint, Unit, Integration, Build**.
-   * Al merge a `main`: **staging efímero**, despliegue y **E2E**.
-   * Si E2E pasan: **deploy a producción** automático o con aprobación manual.
-
-8. **Contratos**
-   Publicar y verificar contratos en CI:
-
-   * **OpenAPI**: validación de esquema y breaking changes.
-   * **Pact**: publicar pacts de consumidores y verificar en proveedores.
-
-9. **Observabilidad desde el día 1**
-
-   * **Logs JSON** con `trace_id`.
-   * **Métricas Prometheus**: latencia, errores, throughput.
-   * **Trazas OpenTelemetry** extremo a extremo.
-
----
-
-## Uso de Codex para generar artefactos (sin Spec-Kit)
-
-> Pegue estos prompts en Codex y guarde el resultado en los archivos indicados.
-
-### 1) Generar `spec.md`
-
-```
-Actúa como analista de producto. Con base en SCOPE.md, crea spec.md para el slice "<slug>":
-- Problema y objetivos
-- Usuarios y casos de uso
-- Historias de usuario con criterios de aceptación verificables (Gherkin opcional)
-- Fuera de alcance
-- Riesgos y supuestos
-Formato: Markdown estructurado. No inventes endpoints ni modelos aún.
-```
-
-### 2) Generar `plan.md`
-
-```
-Actúa como arquitecto de software. A partir de spec.md:
-- Diagrama de componentes y responsabilidades
-- Decisiones clave (ADR breve) con pros/cons
-- Estrategia de datos y migraciones
-- Contratos externos previstos (HTTP/eventos) y versionado
-- Plan de pruebas: unit, integration, e2e, contrato
-- Riesgos técnicos y mitigación
-Salida: plan.md en Markdown con checklist de tareas derivables.
-```
-
-### 3) Generar `data-model.md`
-
-```
-Con base en plan.md, define entidades, campos, relaciones, índices, eventos de dominio y estrategias de migración/versionado. Incluye ejemplos de payload.
-```
-
-### 4) Generar `tasks.md`
-
-```
-Transforma plan.md en una lista de tareas atómicas ordenadas:
-- Prefijo [BE]/[FE]/[TEST]/[OPS]
-- Dependencias
-- Criterio de aceptación por tarea
-- Etiqueta de flag si aplica
-```
-
-### 5) Generar contratos
-
-```
-Proponer openapi.yaml mínimo viable para endpoints del slice. Estándares: versionado semántico, errores estructurados, paginación, idempotencia. Sugerir pacts para consumidores/proveedores relevantes.
-```
-
----
-
-## Convenciones
-
-* **Ramas**: `feature/NNN-<slug>`, `hotfix/<id>`, `release/<x.y.z>`.
-* **Commits**: Conventional Commits.
-* **Issues**: reflejan ítems de `tasks.md`.
-* **DoD** por slice:
-
-  * `spec.md`, `plan.md`, `data-model.md`, `contracts/` actualizados
-  * pruebas unitarias e integración verdes
-  * E2E del slice cubiertos
-  * métricas y trazas visibles
-  * feature flag apagable
-  * quickstart operativo
-
----
-
-## CI/CD de referencia (GitHub Actions)
-
-`.github/workflows/pr.yml`
-
-```yaml
-name: pr
-on:
-  pull_request:
-    branches: [ main ]
-jobs:
-  build-test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: '20' }
-      - run: npm ci
-      - run: npm run lint
-      - run: npm run test:unit
-      - run: npm run test:integration
-      - run: npm run build
-```
-
-`.github/workflows/main-staging.yml`
-
-```yaml
-name: main-staging
-on:
-  push:
-    branches: [ main ]
-jobs:
-  staging:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: ./scripts/provision-ephemeral-staging.sh
-      - run: npm ci && npm run migrate
-      - run: npm run start:staging &
-      - run: npm run test:e2e -- --baseUrl ${{ steps.env.outputs.url }}
-      - run: ./scripts/publish-contracts.sh
-```
-
-`.github/workflows/deploy-prod.yml`
-
-```yaml
-name: deploy-prod
-on:
-  workflow_run:
-    workflows: [ main-staging ]
-    types: [ completed ]
-jobs:
-  deploy:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: ./scripts/deploy-prod.sh
-```
-
----
-
-## Observabilidad
-
-* **Logs**: JSON, nivel por módulo, `trace_id` propagado.
-* **Métricas**: exportadores Prometheus. Latencia p50/p95/p99, tasa de error, RPS.
-* **Trazas**: OpenTelemetry SDK, sampling por entorno, spans FE↔BE↔DB.
-
----
-
-## Pruebas
-
-* **Unit**: aisladas y rápidas.
-* **Integration**: con dependencias reales o testcontainers.
-* **E2E**: sobre staging efímero.
-* **Contrato (Pact)**: publicar y verificar en CI. Rompimientos bloquean merge.
-
----
-
-## Flags de funcionalidad
-
-* Estrategia: `boolean`, `per cohort`, `percentage rollouts`.
-* Regla: todo código nuevo controlado por flag. Rollout seguro y reversible.
-
----
-
-## Reglas de revisión
-
-* 2 aprobaciones por PR.
-* Sin `force-push` a `main`.
-* Checks obligatorios: lint, unit, integration, build, contrato.
-
----
-
-## Checklist de “Ready for Dev” por slice
-
-* `spec.md` completo y aprobado
-* `plan.md` y `data-model.md` revisados
-* `contracts/` iniciales definidos
-* `tasks.md` priorizado
-* feature flag creado
-* métricas y trazas planificadas
-
-## Checklist de “Ready for Prod”
-
-* PRs del slice integrados
-* E2E verdes en staging efímero
-* Pact verificado
-* observabilidad activa
-* rollback documentado
-
----
-
-## Scripts sugeridos
-
-`scripts/create-feature.sh`
-
-```bash
-#!/usr/bin/env bash
-set -euo pipefail
-n=$(printf "%03d" "${1:?num}"); slug="${2:?slug}"
-dir="specs/${n}-${slug}"
-mkdir -p "$dir/contracts/pact"
-for f in spec plan data-model tasks quickstart research; do
-  : > "${dir}/${f}.md"
-done
-echo "openapi: 3.0.3" > "${dir}/contracts/openapi.yaml"
-echo "Creado ${dir}"
-```
-
-`scripts/verify-readiness.sh`
-
-```bash
-#!/usr/bin/env bash
-set -euo pipefail
-d="specs/$1-$2"
-for f in spec.md plan.md data-model.md tasks.md; do
-  test -s "${d}/${f}" || { echo "Falta ${f}"; exit 1; }
-done
-```
-
----
-
-## Referencias
-
-* Pasos núcleo de especificar → planificar → tareas → implementar en el README de `github/spec-kit`. ([GitHub][1])
-* Nota de soporte de agentes y limitación de **Codex CLI** para argumentos personalizados. ([GitHub][1])
-
----
-
-Si quieres, adapto los prompts a tu `SCOPE.md` real y dejo creada la primera carpeta `specs/001-...`.
-
-[1]: https://github.com/github/spec-kit "GitHub - github/spec-kit:  Toolkit to help you get started with Spec-Driven Development"
