@@ -209,8 +209,20 @@ Cada servicio es autónomo, desplegable de forma independiente, y sigue el princ
     *   Gestionar perfiles regulatorios por país y tipo de propiedad.
     *   Adaptación multi-país.
 
+Adiciones
 ---
+### **3.16. `marketplace-service` (Puerto 3013)**
+ **Alcance:Permite a los administradores y propietarios contratar servicios legales, de mantenimiento, asesoría financiera, etc., directamente desde la plataforma, generando una comisión recurrente para SmartEdify. pero se expande a maintenance, rrhh-service
+Beneficios Clave:
 
+---
+### **3.17. `analytics-service` (Puerto 3014)**
+ **Alcance:Proporciona insights predictivos y descriptivos sobre la participación, los temas más votados, la satisfacción de los propietarios, etc., permitiendo a las juntas directivas tomar decisiones proactivas y a SmartEdify ofrecer módulos premium de inteligencia de negocio. pero se expande a maintenance, rrhh-service
+Monetización: Nuevos flujos de ingresos por comisiones y suscripciones premium.
+*    **Engagement: Los propietarios ven valor añadido más allá de la votación.
+*    **Toma de Decisiones: Las juntas directivas pueden actuar con base en datos, no en intuición.
+*    **Diferenciación Competitiva: SmartEdify no es solo un software de asambleas; es una plataforma de servicios y datos para comunidades inteligentes.
+---
 ## 🌐 **4. Estrategia Multi-País y Localización**
 
 *   **Motor de Cumplimiento (`compliance-service`):** Define perfiles regulatorios por país (Perú, Chile, México, España, etc.) y tipo de propiedad.
