@@ -8,14 +8,14 @@
 
 ## 🎯 **1. Visión del Producto**
 
-SmartEdify es una **plataforma SaaS global de gobernanza y gestión comunitaria** diseñada para digitalizar, automatizar y hacer transparente la administración de condominios, edificios corporativos y complejos residenciales en múltiples jurisdicciones.
+SmartEdify es una **plataforma SaaS global de gobernanza y gestión comunitaria** diseñada para digitalizar, automatizar y hacer **jurídicamente válida** la administración de condominios en Perú, con capacidad de expansión a Latinoamérica y Europa.
 
 Su objetivo es convertirse en el **sistema operativo digital para comunidades**, combinando:
 
-*   **Gobernanza Democrática Digital:** Asambleas híbridas (presencial/virtual/mixta) con votación ponderada, validación legal en tiempo real y generación de actas con IA.
-*   **Gestión Operativa Inteligente:** Mantenimiento predictivo, reservas de áreas comunes, seguridad física integrada.
-*   **Cumplimiento Normativo Adaptativo:** Motor legal dinámico que se adapta a las regulaciones locales (Perú, Chile, México, España, etc.) sin reescribir el núcleo del sistema.
-*   **Experiencia de Usuario Centrada en la Comunidad:** Gamificación, notificaciones personalizadas, marketplace integrado y diseño móvil-first.
+*   **Gobernanza Democrática Digital con Validez Legal:** Asambleas híbridas (presencial/virtual/mixta) con flujos legales adaptativos, votación ponderada, validación de quórum vinculada criptográficamente al video, y generación de actas con IA.
+*   **Gestión Operativa Inteligente e Inclusiva:** Mantenimiento predictivo, reservas de áreas comunes, seguridad física integrada, y soporte para votación asistida (moderador, biometría, SMS).
+*   **Cumplimiento Normativo Adaptativo:** Motor legal dinámico (`compliance-service`) que se adapta a las regulaciones locales sin reescribir el núcleo del sistema.
+*   **Experiencia de Usuario Centrada en la Comunidad:** Gamificación con recompensas tangibles, notificaciones personalizadas, y una UI/UX optimizada para reducir la fricción tecnológica.
 
 ---
 
@@ -27,11 +27,11 @@ Su objetivo es convertirse en el **sistema operativo digital para comunidades**,
 |--------|----------------|---------------|
 | **Microservicios** | 14 servicios independientes, cada uno con su propia base de datos y ciclo de vida. | Escalabilidad, despliegue independiente, aislamiento de fallos. |
 | **API Gateway** | Punto de entrada único para todos los clientes (web, móvil, terceros). | Centralización de seguridad, enrutamiento, rate limiting. |
-| **Event-Driven** | Comunicación asíncrona vía RabbitMQ. Registro de esquemas en `notifications-service`. | Desacoplamiento, resiliencia, escalabilidad horizontal. |
+| **Event-Driven** | Comunicación asíncrona vía RabbitMQ. Registro y validación de esquemas en `notifications-service`. | Desacoplamiento, resiliencia, escalabilidad horizontal. |
 | **Multi-Tenant** | Modelo: *Shared Database, Shared Schema* con discriminador `condominium_id` + RLS. | Eficiencia operativa, escalabilidad a miles de tenants. |
 | **Frontend Monorepo** | Aplicaciones: User Web, Admin Web, Mobile App (React/React Native). | Reutilización de código, consistencia UX, despliegue coordinado. |
 
-### **2.2. Componentes Principales**
+### **2.2. Componentes Principales (Diagrama Mermaid)**
 
 ```mermaid
 graph TD
@@ -40,11 +40,9 @@ graph TD
         B[Admin Web<br/>Puerto 4000] --> G
         C[Mobile App<br/>Puerto 8081] --> G
     end
-
     subgraph Gateway
         G[API Gateway<br/>Puerto 8080]
     end
-
     subgraph Core Backend
         G --> I[identity-service<br/>3001]
         G --> U[user-profiles-service<br/>3002]
@@ -61,11 +59,9 @@ graph TD
         G --> CPLY[compliance-service<br/>3012]
         G --> PS[physical-security-service<br/>3004]
     end
-
     classDef frontend fill:#4A90E2,stroke:#333,color:white;
     classDef gateway fill:#50E3C2,stroke:#333,color:black;
     classDef backend fill:#F5A623,stroke:#333,color:black;
-
     class A,B,C frontend
     class G gateway
     class I,U,T,S,N,D,F,P,H,M,V,GVR,CPLY,PS backend
@@ -73,9 +69,9 @@ graph TD
 
 ---
 
-## 📦 **3. Alcance de Microservicios (14 Servicios)**
+## 📦 **3. Alcance de Microservicios (14 Servicios) — ¡REVISIÓN 1.0!**
 
-Cada servicio es autónomo, desplegable de forma independiente, y sigue el principio de responsabilidad única.
+Cada servicio es autónomo, desplegable de forma independiente, y sigue el principio de responsabilidad única. **Los cambios clave respecto a versiones anteriores están marcados con 🆕.**
 
 ---
 
@@ -90,6 +86,7 @@ Cada servicio es autónomo, desplegable de forma independiente, y sigue el princ
 
 *   **Alcance:** Gestión de identidad digital. Login, registro, MFA, OAuth2/OIDC, RBAC/ABAC.
 *   **Responsabilidades Clave:** Autenticación, autorización, gestión de sesiones, cumplimiento ARCO/GDPR.
+*   **🆕 Mejora Revisión 1.0:** Soporte para registro y validación de credenciales biométricas (Touch ID, Face ID) para integración con `streaming-service`.
 
 ---
 
@@ -107,15 +104,17 @@ Cada servicio es autónomo, desplegable de forma independiente, y sigue el princ
 
 ---
 
-### **3.5. `streaming-service` (Puerto 3014)**
+### **3.5. `streaming-service` (Puerto 3014) — ¡NUEVO EN SCOPE!**
 
-*   **Alcance:** Gestión de sesiones de video en vivo para asambleas híbridas. Integración con Google Meet, generación y validación de QR, transcripción en tiempo real, grabación segura.
+*   **Alcance:** Gestión de sesiones de video en vivo para asambleas híbridas. Integración con Google Meet, generación y validación de QR, transcripción en tiempo real, grabación segura, y control de moderación.
 *   **Responsabilidades Clave:**
     *   Iniciar/terminar sesiones de video.
-    *   Generar QR dinámicos para validación de identidad y quórum.
+    *   **🆕 Generar QR dinámicos para validación de asistencia (escaneable desde el mismo dispositivo).**
+    *   **🆕 Validar asistencia mediante biometría (huella/rostro) o código SMS/Email como alternativas al QR.**
     *   Integrar Speech-to-Text para transcripción en vivo.
     *   Grabar, cifrar y almacenar videos con hash de verificación.
-    *   Proporcionar controles de moderación (silenciar, ceder palabra).
+    *   Proporcionar controles de moderación (silenciar, ceder palabra, cronómetro).
+    *   **🆕 Gestionar el “Modo Presencial” para que el moderador registre asistentes y votos manuales.**
 *   **Justificación:** Separado del `governance-service` para cumplir con SRP, permitir reutilización y manejar la complejidad técnica del streaming de forma aislada.
 
 ---
@@ -131,6 +130,7 @@ Cada servicio es autónomo, desplegable de forma independiente, y sigue el princ
 
 *   **Alcance:** Envío de notificaciones (email, SMS, push). Registro y validación de esquemas de eventos (Event Schema Registry).
 *   **Responsabilidades Clave:** Multicanal, gestión de plantillas, muro de noticias virtual.
+*   **🆕 Mejora Revisión 1.0:** Soporte para enviar códigos de verificación de 6 dígitos para validación de asistencia vía SMS/Email.
 
 ---
 
@@ -138,13 +138,14 @@ Cada servicio es autónomo, desplegable de forma independiente, y sigue el princ
 
 *   **Alcance:** Gestión de documentos legales. Almacenamiento (S3), generación desde plantillas, flujos de firma electrónica.
 *   **Responsabilidades Clave:** Generación de actas, contratos, carteles de convocatoria. Integración con Llama.pe.
+*   **🆕 Mejora Revisión 1.0:** Adjuntar automáticamente fotos de papeletas físicas (votos presenciales) como anexos en el PDF del acta.
 
 ---
 
 ### **3.9. `finance-service` (Puerto 3007)**
 
 *   **Alcance:** Gestión financiera. Cuotas de mantenimiento, conciliación bancaria, reportes contables (PCGE, NIIF), impuestos.
-*   **Responsabilidades Clave:** Cálculo de cuotas, procesamiento de pagos, validación de quórum para votaciones.
+*   **Responsabilidades Clave:** Cálculo de cuotas, procesamiento de pagos, validación de quórum para votaciones (solo propietarios “habilitados”).
 
 ---
 
@@ -166,19 +167,29 @@ Cada servicio es autónomo, desplegable de forma independiente, y sigue el princ
 
 *   **Alcance:** Inventario de activos (hard y soft). Órdenes de trabajo (preventivas y correctivas), gestión de proveedores.
 *   **Responsabilidades Clave:** Jerarquía de activos, mantenimiento, indicadores de disponibilidad.
+*   **Integración Clave:** `reservation-service` (las áreas comunes son activos).
 
 ---
 
-### **3.13. `governance-service` (Puerto 3011)**
+### **3.13. `governance-service` (Puerto 3011) — ¡REVISIÓN 1.0 COMPLETA!**
 
-*   **Alcance:** Ciclo completo de asambleas. Convocatoria con flujos legales (Presidente / 25% propietarios), votación ponderada, generación de actas con IA (MCP).
+*   **Alcance:** Ciclo completo de asambleas con **validez legal peruana garantizada**. Gestión de iniciativas de convocatoria, flujos de aprobación, votación ponderada, generación de actas con IA (MCP), y moderación híbrida.
 *   **Responsabilidades Clave:**
-    *   Flujos de aprobación de convocatorias.
-    *   Validación de quórum en tiempo real.
-    *   Orquestación de votaciones.
-    *   Integración con `streaming-service` para asambleas híbridas.
-    *   Generación de borradores de actas con NLP.
-*   **Dependencias Clave:** `streaming-service`, `compliance-service`, `documents-service`, `finance-service`.
+    *   **🆕 Flujos de Convocatoria Legalmente Alineados:**
+        *   **Iniciativa de Convocatoria:** Creada por cualquier propietario, con orden del día estructurado (informativos/votables).
+        *   **Recolección de Adhesiones:** Los propietarios “adhieren” (no votan) hasta alcanzar el 25% de alícuotas.
+        *   **Convocatoria Obligatoria:** Al alcanzar el 25%, el sistema notifica al Administrador, quien **tiene la obligación legal** de emitir la convocatoria formal en 15 días.
+    *   **Validación Legal Dinámica:** Consulta al `compliance-service` para validar quórum, mayorías y flujos en tiempo real. **Ningún valor está hardcoded.**
+    *   **Gestión de Sesiones Híbridas (con `streaming-service`):**
+        *   **Validación de Asistencia:** Solo los usuarios validados (QR, biometría, SMS) cuentan para el quórum.
+        *   **Moderación Híbrida:** Sistema automático (cola FIFO) + intervención manual del moderador (réplicas, ampliaciones).
+        *   **Votación Presencial Registrada por Moderador (Modo Mixta):** El moderador puede registrar manualmente a asistentes presenciales y sus votos, adjuntando fotos de papeletas.
+    *   **Auditoría Legal Inmutable:**
+        *   **Sello de Quórum:** Al cerrar la votación, se genera un hash criptográfico del estado del quórum, que se incrusta en los metadatos del video.
+        *   **Snapshot de Quórum:** Se genera un PDF con la lista de asistentes y alícuotas en el momento del cierre, que se adjunta al acta.
+    *   **Generación de Actas con IA (MCP):** El MCP genera un borrador a partir de la transcripción. El acta final es aprobada y firmada por el Presidente y el Secretario.
+    *   **Gamificación con Recompensas Tangibles:** Los puntos se pueden canjear por descuentos en cuotas (integración con `finance-service`).
+*   **Dependencias Clave:** `streaming-service`, `compliance-service`, `documents-service`, `finance-service`, `user-profiles-service`.
 
 ---
 
@@ -191,8 +202,12 @@ Cada servicio es autónomo, desplegable de forma independiente, y sigue el princ
 
 ### **3.15. `compliance-service` (Puerto 3012)**
 
-*   **Alcance:** Motor de Cumplimiento Normativo Global. Valida reglas legales (financieras, laborales, de asambleas) basadas en el país del tenant y su reglamento interno. Usa motor de reglas + LLM.
-*   **Responsabilidades Clave:** Validación legal en tiempo real, gestión de perfiles regulatorios, adaptación multi-país.
+*   **Alcance:** **Motor de Cumplimiento Normativo Global.** Valida reglas legales (financieras, laborales, de asambleas) basadas en el país del tenant y su reglamento interno. Usa motor de reglas + LLM.
+*   **Responsabilidades Clave:**
+    *   Definir y validar flujos de aprobación de convocatorias.
+    *   Inyectar dinámicamente quórum y mayorías requeridas para cada tipo de decisión.
+    *   Gestionar perfiles regulatorios por país y tipo de propiedad.
+    *   Adaptación multi-país.
 
 ---
 
@@ -207,11 +222,11 @@ Cada servicio es autónomo, desplegable de forma independiente, y sigue el princ
 
 ## 🛡️ **5. Seguridad y Cumplimiento**
 
-*   **Autenticación:** JWT + MFA.
+*   **Autenticación:** JWT + MFA + Biometría (opcional).
 *   **Autorización:** RBAC/ABAC con políticas dinámicas.
 *   **Cifrado:** AES-256 en reposo, TLS 1.3 en tránsito.
-*   **Auditoría:** Trazas inmutables para todas las operaciones críticas (event sourcing).
-*   **Privacidad:** Cumplimiento con GDPR, LGPD, Ley 29733. Consentimientos explícitos.
+*   **Auditoría:** Trazas inmutables (Event Sourcing) para todas las operaciones críticas.
+*   **Privacidad:** Cumplimiento con GDPR, LGPD, Ley 29733. Consentimientos explícitos para grabación de video y uso de biometría.
 
 ---
 
@@ -243,11 +258,11 @@ Para que un microservicio se considere “completo” y listo para producción, 
 
 ## 📅 **8. Hoja de Ruta (Roadmap) — Visión Global**
 
-*   **Fase 1:** Lanzamiento  (MVP: `governance`, `reservation`, `asset-management` + `compliance` básico), con los soportes necesarios minimos
-*   **Fase 2:** Completar `compliance-service` y `finance-service`.
-*   **Fase 3:** Desarrollar 'payroll-service', 'hr-compliance-service'
-*   **Fase 4:** Implementar el 100% de los microservicios
-*   **Fase 5:** Retroalimentacion y mejoras
+*   **Trimestre 1:** Lanzamiento en Perú (PMV: `governance-service`, `reservation-service`, `asset-management-service` + `streaming-service`).
+*   **Trimestre 2:** Expansión a Chile y Colombia. Adaptación de `compliance-service`.
+*   **Trimestre 3:** Lanzamiento en México y España. Integración con proveedores locales.
+*   **Año 2:** Expansión a Brasil y resto de LATAM. Soporte para LGPD.
+*   **Año 3:** Entrada en mercado Europeo. Cumplimiento con GDPR y normativas de eficiencia energética.
 
 ---
 
@@ -263,9 +278,9 @@ Para que un microservicio se considere “completo” y listo para producción, 
 
 ## ✅ **10. Conclusión**
 
-Esta especificación de alcance define a SmartEdify como una **plataforma global, resiliente y legalmente adaptable**. La arquitectura de 14 microservicios, con la introducción crítica del `streaming-service` como componente independiente, permite una expansión ágil y segura a nuevos mercados, convirtiendo los desafíos regulatorios y técnicos en una ventaja competitiva insuperable.
+Esta **Revisión 1.0** del `SCOPE.md` define a SmartEdify como una **plataforma global, resiliente y legalmente adaptable**. La arquitectura de 14 microservicios, con las mejoras críticas implementadas en el `governance-service` y el `streaming-service`, permite una expansión ágil y segura a nuevos mercados, convirtiendo los desafíos regulatorios y técnicos en una ventaja competitiva insuperable.
 
-La plataforma no solo digitaliza procesos; **reinventa la forma en que las comunidades se gobiernan, operan y cumplen con la ley en un mundo multi-jurisdiccional.**
+La plataforma no solo digitaliza procesos; **reinventa la forma en que las comunidades se gobiernan, operan y cumplen con la ley en un mundo multi-jurisdiccional, con un enfoque profundo en la inclusión, la accesibilidad y la validez legal irrefutable**.
 
 ---
 
