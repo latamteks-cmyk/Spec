@@ -1,12 +1,8 @@
-Aquí tienes el README propuesto. Está alineado con Spec-Driven Development descrito en `github/spec-kit` y adapta el flujo para trabajar sin el CLI ni plantillas de Spec-Kit, usando Codex como asistente de redacción de especificaciones. ([GitHub][1])
-
----
-
 # README — Especificación y Desarrollo sin agente específico (modo “Spec-Kit manual”)
 
 ## Objetivo
 
-Definir cómo preparar y ejecutar el proyecto bajo un enfoque de **Spec-Driven Development** sin usar el CLI de Spec-Kit. Usaremos **Codex** u otro asistente para ir generando artefactos, pero la estructura y el proceso son manuales. Nota: el README oficial de Spec-Kit indica que **Codex CLI no soporta argumentos personalizados en “slash commands”**, por eso aquí operamos sin comandos del kit. ([GitHub][1])
+Definir cómo preparar y ejecutar el proyecto bajo un enfoque de **Spec-Driven Development** sin usar el CLI de Spec-Kit. Usaremos **Codex** u otro asistente para ir generando artefactos, pero la estructura y el proceso son manuales. Nota: el README oficial de Spec-Kit indica que **Codex CLI no soporta argumentos personalizados en “slash commands”**, por eso aquí operamos sin comandos del kit.
 
 ---
 
