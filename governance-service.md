@@ -1,6 +1,6 @@
 # 📘 **Especificación Técnica: `governance-service` (Puerto 3011) — Versión 0.0**
 > **Metodología:** `github/spec-kit`  
-> **Versión:** `0.0`  
+> **Versión:** `1.0`  
 > **Estado:** `Vision Global - Para inicio del desarrollo spec`  
 > **Última Actualización:** `2025-04-05`  
 > **Alcance Global:** Plataforma de Gobernanza Comunitaria Internacional para Asambleas Híbridas (Presencial/Virtual/Mixta) con Validación Legal Adaptativa, Moderación Inteligente, Auditoría Inmutable y Soporte para Participación Inclusiva.  
@@ -8,8 +8,9 @@
 
 ---
 
-## 🧭 **1. Visión y Justificación Global**
-El `governance-service` es el **corazón democrático y legal** de SmartEdify a nivel global. Su misión es orquestar el ciclo de vida completo de las asambleas de propietarios — desde la iniciativa de convocatoria hasta la generación del acta final — de manera **totalmente digital, legalmente válida y culturalmente inclusiva**.
+## 🧭 **1. Visión y Justificación**
+
+El `governance-service` es el **corazón democrático y legal** de SmartEdify. Su misión es orquestar el ciclo de vida completo de las asambleas de propietarios — desde la iniciativa de convocatoria hasta la generación del acta final — de manera **totalmente digital, legalmente válida y culturalmente inclusiva**.
 
 Este servicio debe ser **completamente agnóstico a la legislación local**. En lugar de codificar leyes específicas, **delega toda la lógica normativa al `compliance-service`**, que actúa como el "cerebro legal" dinámico. Esto permite que una misma asamblea pueda celebrarse bajo reglas peruanas, españolas o brasileñas, simplemente cambiando el perfil regulatorio del tenant.
 
@@ -22,7 +23,9 @@ Este servicio debe ser **completamente agnóstico a la legislación local**. En 
 ---
 
 ## 🏗️ **2. Arquitectura y Diseño Global**
+
 ### **2.1. Patrones Arquitectónicos Clave**
+
 | Patrón | Implementación | Justificación |
 |--------|----------------|---------------|
 | **Microservicio RESTful + WebSocket** | API síncrona para CRUD y orquestación. WebSocket para actualizaciones en tiempo real (quórum, turno de palabra, votos presenciales). | Soporta interacciones en vivo sin bloquear la API. |
@@ -33,6 +36,7 @@ Este servicio debe ser **completamente agnóstico a la legislación local**. En 
 | **AI Agent Pattern** | El MCP (Motor de Cumplimiento y Procesamiento) redacta borradores de actas mediante NLP. | Automatiza la tarea más compleja y propensa a error. |
 
 ### **2.2. Diagrama de Contexto Global (Mermaid)**
+
 ```mermaid
 graph TD
     subgraph Frontend
@@ -72,6 +76,7 @@ graph TD
 ## 📦 **3. Especificación Funcional Detallada (Visión Global)**
 
 ### **3.1. Gestión del Ciclo de Vida de la Asamblea**
+
 *   **Crear/Editar/Eliminar Asamblea (Solo Administrador):**
     *   Definir título, descripción, fecha/hora, modalidad (`Presencial`, `Virtual`, `Mixta`).
     *   Asignar un código único (ej: `ASM-2025-001`).
@@ -80,6 +85,7 @@ graph TD
     *   **NO asignar un moderador designado.** El moderador se elige al inicio de la reunión.
 
 ### **3.2. Flujos de Iniciativa y Emisión de Convocatoria**
+
 *   **Iniciativa de Convocatoria (Creada por cualquier Propietario):**
     *   El propietario crea una `AssemblyInitiative` con un orden del día estructurado:
         *   **Puntos Informativos:** Solo para información, sin votación.
@@ -92,8 +98,9 @@ graph TD
     *   Se inicia la **Saga de Inmutabilidad**: generación de PDF, firma digital, hashing, notificación multicanal.
 
 ### **3.3. Gestión de la Sesión Híbrida (Virtual/Mixta)**
+
 *   **Validación de Asistencia (Múltiples Métodos):**
-    *   **QR Dinámico:** El usuario escanea un QR desde la misma pantalla (usando la cámara del dispositivo) o desde otro dispositivo. El QR contiene un payload firmado con `user_id`, `session_id`, `timestamp`.
+    *   **QR Dinámico (Optimizado):** El usuario valida su asistencia escaneando un QR que aparece en su propia pantalla, usando la cámara del mismo dispositivo. El sistema usa librerías como `jsQR` para detectar y decodificar el QR automáticamente.
     *   **Biometría (Opcional):** El usuario valida su asistencia con huella dactilar o reconocimiento facial (Touch ID, Face ID, BiometricPrompt).
     *   **Código por SMS/Email (Fallback):** El sistema envía un código de 6 dígitos que el usuario ingresa manualmente.
     *   **Registro Manual por Moderador (Solo en Mixta/Presencial):** El moderador puede registrar manualmente a un asistente presencial, validando su identidad contra el `user-profiles-service`.
@@ -109,6 +116,7 @@ graph TD
     *   Se genera un **QR de Auditoría** que cualquier propietario puede escanear para verificar la integridad del video y el quórum registrado.
 
 ### **3.4. Gestión de Votaciones (Digital y Presencial)**
+
 *   **Votación Digital:**
     *   Los propietarios validados pueden votar desde la app/web.
     *   El voto es ponderado por su alícuota (obtenida del `tenancy-service`).
@@ -121,6 +129,7 @@ graph TD
     *   Las fotos de las papeletas se adjuntan al acta final como evidencia legal.
 
 ### **3.5. Generación de Actas y Gamificación**
+
 *   **Asistente IA (MCP) para Redacción de Actas:**
     *   Durante la asamblea, el MCP analiza la transcripción (de `streaming-service`) y genera un borrador del acta.
     *   El **moderador o el administrador** edita, aprueba y firma digitalmente el acta (vía `documents-service`).
@@ -301,11 +310,6 @@ GET    /api/v1/sessions/verify-recording            # Endpoint público para ver
 
 ## ✅ **8. Conclusión**
 
-Esta **Versión 0.0** del `governance-service` establece las bases para un sistema de gobernanza comunitaria **verdaderamente global, inclusivo y legalmente robusto**. Al externalizar toda la lógica normativa al `compliance-service` y al diseñar mecanismos de participación flexibles (digital, presencial, biométrica), el servicio está preparado para operar en cualquier jurisdicción del mundo.
+Esta **Versión 1.0.0** del `governance-service` establece las bases para un sistema de gobernanza comunitaria **verdaderamente global, inclusivo y legalmente robusto**. Al externalizar toda la lógica normativa al `compliance-service` y al diseñar mecanismos de participación flexibles (digital, presencial, biométrica), el servicio está preparado para operar en cualquier jurisdicción del mundo.
 
 La arquitectura prioriza la **trazabilidad absoluta** (event sourcing, sellos criptográficos) y la **experiencia de usuario inclusiva** (múltiples métodos de validación, votación asistida), convirtiendo a SmartEdify en la plataforma de referencia para la democracia digital en comunidades residenciales y comerciales a nivel internacional.
-
----
-
-**© 2025 SmartEdify Global. Todos los derechos reservados.**  
-*Documento generado automáticamente a partir de la especificación técnica.*
