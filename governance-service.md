@@ -1,11 +1,10 @@
 # 📘 **Especificación Técnica: `governance-service` (Puerto 3011) — Versión 0.0**
 > **Metodología:** `github/spec-kit`  
-> **Versión:** `1.0`  
+> **Versión:** `2.0`  
 > **Estado:** `Vision Global - Para inicio del desarrollo spec`  
 > **Última Actualización:** `2025-04-05`  
 > **Alcance Global:** Plataforma de Gobernanza Comunitaria Internacional para Asambleas Híbridas (Presencial/Virtual/Mixta) con Validación Legal Adaptativa, Moderación Inteligente, Auditoría Inmutable y Soporte para Participación Inclusiva.  
 > **Visión Internacional:** Diseñar un sistema jurídicamente agnóstico que se adapte dinámicamente a cualquier marco regulatorio local (Perú, Chile, México, España, Brasil, etc.) mediante el motor de cumplimiento (`compliance-service`), garantizando transparencia, trazabilidad y validez legal universal.
-
 ---
 
 ## 🧭 **1. Visión y Justificación Global**
@@ -183,12 +182,136 @@ graph TD
 
 ---
 
-## ⚙️ **4. Modelo de Datos (Resumen Global)**
-
-*(Incluye todas las tablas definidas en versiones anteriores, más las nuevas para eProxy y Async)*
+## ⚙️ **4. Modelo de Datos Completo (SQL)**
 
 ```sql
--- Nueva Entidad: ProxyVote (Votación por Delegación)
+-- Entidad: Assembly (Asamblea)
+CREATE TABLE assemblies (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL,
+    code TEXT UNIQUE NOT NULL,
+    title TEXT NOT NULL,
+    description TEXT,
+    start_time TIMESTAMPTZ NOT NULL,
+    end_time TIMESTAMPTZ NOT NULL,
+    modality TEXT NOT NULL, -- 'PRESENCIAL', 'VIRTUAL', 'MIXTA'
+    status TEXT NOT NULL, -- 'DRAFT', 'SCHEDULED', 'IN_PROGRESS', 'CONCLUDED'
+    created_by UUID NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Entidad: AssemblyInitiative (Iniciativa de Convocatoria)
+CREATE TABLE assembly_initiatives (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    assembly_id UUID NOT NULL REFERENCES assemblies(id),
+    proposed_by UUID NOT NULL REFERENCES users(id),
+    status TEXT NOT NULL, -- 'DRAFT', 'COLLECTING_ADHESIONS', 'QUOTA_ACHIEVED', 'NOTICE_EMITTED'
+    required_adhesion_percentage NUMERIC NOT NULL, -- Definido por compliance-service
+    current_adhesion_percentage NUMERIC NOT NULL DEFAULT 0.0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Entidad: AssemblyNotice (Convocatoria Formal)
+CREATE TABLE assembly_notices (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    initiative_id UUID NOT NULL REFERENCES assembly_initiatives(id),
+    issued_by UUID NOT NULL REFERENCES users(id), -- Administrador
+    scheduled_date TIMESTAMPTZ NOT NULL,
+    pdf_url TEXT,
+    hash_sha256 TEXT,
+    status TEXT NOT NULL, -- 'DRAFT', 'EMITTED', 'INMUTABLE'
+    emitted_at TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Entidad: Proposal (Propuesta a Votación)
+CREATE TABLE proposals (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    assembly_id UUID NOT NULL REFERENCES assemblies(id),
+    title TEXT NOT NULL,
+    description TEXT,
+    decision_type TEXT NOT NULL, -- 'BUDGET', 'ASSET_DISPOSAL', etc. (Validado por compliance-service)
+    required_quorum_percentage NUMERIC NOT NULL, -- Inyectado por compliance-service
+    required_majority_percentage NUMERIC NOT NULL, -- Inyectado por compliance-service
+    status TEXT NOT NULL, -- 'DRAFT', 'IN_VOTING', 'APPROVED', 'REJECTED'
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Entidad: DigitalVote (Voto Digital)
+CREATE TABLE digital_votes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    proposal_id UUID NOT NULL REFERENCES proposals(id),
+    user_id UUID NOT NULL REFERENCES users(id),
+    weight NUMERIC NOT NULL, -- Alícuota
+    choice TEXT NOT NULL, -- 'YES', 'NO', 'ABSTAIN'
+    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Entidad: ManualVote (Voto Presencial Registrado por Moderador) — ¡NUEVO!
+CREATE TABLE manual_votes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    proposal_id UUID NOT NULL REFERENCES proposals(id),
+    moderator_id UUID NOT NULL REFERENCES users(id),
+    owner_id UUID NOT NULL REFERENCES users(id),
+    choice TEXT NOT NULL,
+    ballot_photo_url TEXT, -- Foto de la papeleta en S3
+    registered_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Entidad: AssemblySession (Sesión Virtual/Mixta)
+CREATE TABLE assembly_sessions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    assembly_id UUID NOT NULL REFERENCES assemblies(id),
+    video_conference_link TEXT,
+    recording_url TEXT,
+    recording_hash_sha256 TEXT,
+    quorum_seal TEXT, -- Hash firmado del estado de quórum al cerrar votación
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Entidad: SessionAttendee (Asistente Validado) — ¡ACTUALIZADO!
+CREATE TABLE session_attendees (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    session_id UUID NOT NULL REFERENCES assembly_sessions(id),
+    user_id UUID NOT NULL REFERENCES users(id),
+    validation_method TEXT NOT NULL, -- 'QR', 'BIOMETRIC', 'SMS', 'EMAIL', 'MANUAL'
+    validation_code TEXT, -- Para métodos SMS/Email
+    validated_at TIMESTAMPTZ NOT NULL,
+    is_present BOOLEAN NOT NULL DEFAULT true
+);
+
+-- Entidad: SpeechRequest (Solicitud de Palabra)
+CREATE TABLE speech_requests (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    session_id UUID NOT NULL REFERENCES assembly_sessions(id),
+    user_id UUID NOT NULL REFERENCES users(id),
+    status TEXT NOT NULL DEFAULT 'PENDING', -- 'PENDING', 'GRANTED', 'COMPLETED'
+    requested_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Entidad: CommunityContribution (Aporte de la Comunidad)
+CREATE TABLE community_contributions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    assembly_id UUID NOT NULL REFERENCES assemblies(id),
+    user_id UUID NOT NULL REFERENCES users(id),
+    content TEXT NOT NULL,
+    media_type TEXT NOT NULL, -- 'text', 'audio', 'video'
+    status TEXT NOT NULL DEFAULT 'PENDING', -- PENDING, APPROVED, REJECTED
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Entidad: ContributionSummary (Resumen de Aportes)
+CREATE TABLE contribution_summaries (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    assembly_id UUID NOT NULL REFERENCES assemblies(id),
+    summary_text TEXT NOT NULL,
+    topics JSONB, -- Lista de temas con resúmenes
+    pdf_url TEXT, -- URL del PDF generado
+    generated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Entidad: ProxyVote (Votación por Delegación) — ¡NUEVO!
 CREATE TABLE proxy_votes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     assembly_id UUID NOT NULL REFERENCES assemblies(id),
@@ -200,7 +323,7 @@ CREATE TABLE proxy_votes (
     expires_at TIMESTAMPTZ NOT NULL
 );
 
--- Nueva Entidad: AsyncAssemblySession (Para Asambleas Asíncronas)
+-- Entidad: AsyncAssemblySession (Para Asambleas Asíncronas) — ¡NUEVO!
 CREATE TABLE async_assembly_sessions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     assembly_id UUID NOT NULL REFERENCES assemblies(id),
@@ -212,17 +335,43 @@ CREATE TABLE async_assembly_sessions (
 
 ---
 
-## 🔌 **5. Contrato de API (Endpoints Clave)**
-
-*(Incluye todos los endpoints anteriores, más los nuevos para eProxy y Async)*
+## 🔌 **5. Contrato de API Completo (Endpoints Clave)**
 
 ```plaintext
-# Votación por Delegación (eProxy)
+# Iniciativas de Convocatoria
+POST   /api/v1/initiatives                          # Crear nueva iniciativa
+GET    /api/v1/initiatives/{id}                     # Obtener detalles
+POST   /api/v1/initiatives/{id}/adhere              # Propietario adhiere a la iniciativa
+# Convocatorias Formales
+POST   /api/v1/initiatives/{id}/emit-notice         # Administrador emite convocatoria formal
+GET    /api/v1/notices/{id}                         # Obtener convocatoria
+# Asambleas y Sesiones
+POST   /api/v1/assemblies/{id}/start-session        # Iniciar sesión híbrida
+GET    /api/v1/sessions/{session_id}/validate-methods # Obtener métodos de validación disponibles
+POST   /api/v1/sessions/{session_id}/validate-attendance # Validar asistencia (QR, Biometría, SMS, etc.)
+POST   /api/v1/sessions/{session_id}/volunteer-moderator # Voluntariarse como moderador
+POST   /api/v1/sessions/{session_id}/elect-moderator # Elegir moderador (solo admin)
+# Moderación y Participación
+POST   /api/v1/sessions/{session_id}/request-speech # Solicitar palabra (entra en cola FIFO)
+POST   /api/v1/sessions/{session_id}/grant-speech/{request_id} # Moderador concede palabra (manual)
+POST   /api/v1/sessions/{session_id}/grant-replica/{user_id} # Moderador concede réplica
+# Votaciones
+POST   /api/v1/proposals/{id}/vote                  # Voto digital
+POST   /api/v1/proposals/{id}/manual-vote           # Moderador registra voto presencial (con foto de papeleta) — ¡NUEVO!
+GET    /api/v1/proposals/{id}/results               # Obtener resultados en tiempo real
+# Canal de Aportes
+POST   /api/v1/assembly/{assembly_id}/contributions # Enviar aporte (texto, audio, video)
+GET    /api/v1/assembly/{assembly_id}/contributions # Listar aportes (solo admin/moderador)
+# Actas y Auditoría
+POST   /api/v1/assemblies/{id}/generate-draft       # Generar borrador de acta con IA (MCP)
+POST   /api/v1/assemblies/{id}/generate-minutes     # Generar acta final (requiere firma)
+GET    /api/v1/sessions/{session_id}/audit-qr       # Obtener QR de auditoría para la sesión
+GET    /api/v1/sessions/verify-recording            # Endpoint público para verificar integridad del video
+# Votación por Delegación (eProxy) — ¡NUEVO!
 POST   /api/v1/proxy-votes                      # Crear un poder de voto
 GET    /api/v1/proxy-votes?assembly_id={id}     # Listar poderes para una asamblea
 DELETE /api/v1/proxy-votes/{id}                 # Revocar un poder
-
-# Asambleas Asíncronas
+# Asambleas Asíncronas — ¡NUEVO!
 POST   /api/v1/assemblies/{id}/start-async      # Iniciar período de votación asíncrona
 GET    /api/v1/assemblies/{id}/async-status     # Obtener estado y tiempo restante
 ```
@@ -276,7 +425,7 @@ GET    /api/v1/assemblies/{id}/async-status     # Obtener estado y tiempo restan
 
 ## ✅ **9. Conclusión**
 
-Esta **Versión 4.0.0** del `governance-service` establece las bases para un sistema de gobernanza comunitaria **verdaderamente global, inclusivo, legalmente robusto y estratégicamente avanzado**. Al externalizar toda la lógica normativa al `compliance-service` y al diseñar mecanismos de participación flexibles (digital, presencial, biométrica, asíncrona, por delegación), el servicio está preparado para operar en cualquier jurisdicción del mundo.
+Esta **Versión 2.0.0** del `governance-service` establece las bases para un sistema de gobernanza comunitaria **verdaderamente global, inclusivo, legalmente robusto y estratégicamente avanzado**. Al externalizar toda la lógica normativa al `compliance-service` y al diseñar mecanismos de participación flexibles (digital, presencial, biométrica, asíncrona, por delegación), el servicio está preparado para operar en cualquier jurisdicción del mundo.
 
 La arquitectura prioriza la **trazabilidad absoluta** (event sourcing, sellos criptográficos), la **experiencia de usuario inclusiva** (múltiples métodos de validación, votación asistida, canal de aportes con IA) y la **innovación estratégica** (asambleas asíncronas, marketplace legal, productos de datos), convirtiendo a SmartEdify en la plataforma de referencia para la democracia digital en comunidades residenciales y comerciales a nivel internacional.
 
