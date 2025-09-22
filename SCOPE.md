@@ -224,8 +224,8 @@ Cada servicio es autónomo, desplegable de forma independiente, y sigue el princ
 ### **3.16. analytics-service (Puerto 3016)**
 * **Alcance:** **Proporcionar inteligencia de negocio a administradores y juntas directivas mediante dashboards y reportes basados en datos.**, ofrecido como un módulo premium.
 * **Responsabilidades Clave:**
-    *     Ingesta de Datos: Consumir eventos de todos los microservicios (asambleas, votaciones, pagos, mantenimiento) y almacenarlos en un data warehouse (por ejemplo, Amazon Redshift o Snowflake).
-    *    Dashboards de Insights:
+        *     Ingesta de Datos: Consumir eventos de todos los microservicios (asambleas, votaciones, pagos, mantenimiento) y almacenarlos en un data warehouse (por ejemplo, Amazon Redshift o Snowflake).
+        *    Dashboards de Insights:
         *    “Tasa de participación por tipo de propietario (residente vs. no residente).”
         *    “Temas más votados y su correlación con la satisfacción del propietario.”
         *    “Predicción de quórum para la próxima asamblea basada en tendencias históricas.”
