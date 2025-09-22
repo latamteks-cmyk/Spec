@@ -6,29 +6,32 @@
 
 ---
 
-## 🧭 **1. Visión General del Sistema**
+## 🎯 **1. Visión del Producto**
 
-SmartEdify es una **plataforma SaaS de gobernanza comunitaria** diseñada para digitalizar, automatizar y hacer transparente la gestión de condominios, edificios corporativos y complejos residenciales en múltiples jurisdicciones.
+SmartEdify es una **plataforma SaaS global de gobernanza y gestión comunitaria** diseñada para digitalizar, automatizar y hacer transparente la administración de condominios, edificios corporativos y complejos residenciales en múltiples jurisdicciones.
 
-La plataforma combina **gobernanza democrática digital** (asambleas, votaciones, propuestas), **gestión operativa inteligente** (activos, mantenimiento, reservas) y **cumplimiento normativo adaptativo** (laboral, financiero, de seguridad, protección de datos) en un solo ecosistema unificado.
+Su objetivo es convertirse en el **sistema operativo digital para comunidades**, combinando:
 
-Con una arquitectura de microservicios altamente modular y un motor de cumplimiento legal dinámico, SmartEdify puede adaptarse a las regulaciones locales de cada país sin reescribir el núcleo del sistema.
+*   **Gobernanza Democrática Digital:** Asambleas híbridas (presencial/virtual/mixta) con votación ponderada, validación legal en tiempo real y generación de actas con IA.
+*   **Gestión Operativa Inteligente:** Mantenimiento predictivo, reservas de áreas comunes, seguridad física integrada.
+*   **Cumplimiento Normativo Adaptativo:** Motor legal dinámico que se adapta a las regulaciones locales (Perú, Chile, México, España, etc.) sin reescribir el núcleo del sistema.
+*   **Experiencia de Usuario Centrada en la Comunidad:** Gamificación, notificaciones personalizadas, marketplace integrado y diseño móvil-first.
 
 ---
 
-## 🏗️ **2. Arquitectura General del Sistema**
+## 🏗️ **2. Arquitectura General**
 
 ### **2.1. Patrones Arquitectónicos**
 
 | Patrón | Implementación | Justificación |
 |--------|----------------|---------------|
-| **Microservicios** | 13 servicios independientes, cada uno con su propia base de datos. | Escalabilidad, despliegue independiente, aislamiento de fallos. |
-| **API Gateway** | Punto de entrada único para todos los clientes. | Centralización de seguridad, enrutamiento, rate limiting. |
+| **Microservicios** | 14 servicios independientes, cada uno con su propia base de datos y ciclo de vida. | Escalabilidad, despliegue independiente, aislamiento de fallos. |
+| **API Gateway** | Punto de entrada único para todos los clientes (web, móvil, terceros). | Centralización de seguridad, enrutamiento, rate limiting. |
 | **Event-Driven** | Comunicación asíncrona vía RabbitMQ. Registro de esquemas en `notifications-service`. | Desacoplamiento, resiliencia, escalabilidad horizontal. |
 | **Multi-Tenant** | Modelo: *Shared Database, Shared Schema* con discriminador `condominium_id` + RLS. | Eficiencia operativa, escalabilidad a miles de tenants. |
 | **Frontend Monorepo** | Aplicaciones: User Web, Admin Web, Mobile App (React/React Native). | Reutilización de código, consistencia UX, despliegue coordinado. |
 
-### **2.2. Diagrama de Componentes (Alto Nivel)**
+### **2.2. Componentes Principales**
 
 ```mermaid
 graph TD
@@ -39,13 +42,14 @@ graph TD
     end
 
     subgraph Gateway
-        G[API Gateway<br/>Puerto 8080] 
+        G[API Gateway<br/>Puerto 8080]
     end
 
-    subgraph Core Backend Services
+    subgraph Core Backend
         G --> I[identity-service<br/>3001]
         G --> U[user-profiles-service<br/>3002]
         G --> T[tenancy-service<br/>3003]
+        G --> S[streaming-service<br/>3014]
         G --> N[notifications-service<br/>3005]
         G --> D[documents-service<br/>3006]
         G --> F[finance-service<br/>3007]
@@ -55,47 +59,8 @@ graph TD
         G --> V[reservation-service<br/>3013]
         G --> GVR[governance-service<br/>3011]
         G --> CPLY[compliance-service<br/>3012]
-        G --> S[physical-security-service<br/>3004]
+        G --> PS[physical-security-service<br/>3004]
     end
-
-    %% Comunicación Asíncrona (Eventos)
-    I -.-> N
-    U -.-> N
-    T -.-> N
-    F -.-> N
-    M -.-> N
-    GVR -.-> N
-    V -.-> N
-    S -.-> N
-
-    %% Dependencias Clave de Servicios
-    GVR --> T
-    GVR --> F
-    GVR --> CPLY
-    GVR --> D
-
-    F --> T
-    F --> CPLY
-
-    V --> M
-    V --> F
-
-    M --> T
-    M --> S
-
-    P --> H
-    P --> F
-
-    H --> CPLY
-
-    S --> T
-
-    D --> CPLY
-    D --> GVR
-
-    CPLY --> T
-    CPLY --> I
-    CPLY --> U
 
     classDef frontend fill:#4A90E2,stroke:#333,color:white;
     classDef gateway fill:#50E3C2,stroke:#333,color:black;
@@ -103,212 +68,176 @@ graph TD
 
     class A,B,C frontend
     class G gateway
-    class I,U,T,N,D,F,P,H,M,V,GVR,CPLY,S backend
-
+    class I,U,T,S,N,D,F,P,H,M,V,GVR,CPLY,PS backend
 ```
+
 ---
 
-## 📦 **3. Especificación de Microservicios (13 Servicios)**
+## 📦 **3. Alcance de Microservicios (14 Servicios)**
 
-Cada servicio sigue el estándar `spec-kit`: **Nombre, Puerto, Alcance, Contrato de API (resumen), Eventos Emitidos, Eventos Consumidos, Integraciones Clave.**
+Cada servicio es autónomo, desplegable de forma independiente, y sigue el principio de responsabilidad única.
 
 ---
 
 ### **3.1. `gateway-service` (Puerto 8080)**
 
-*   **Alcance:** Punto de entrada único. Enrutamiento, autenticación, rate limiting, CORS.
-*   **Contrato API:** Proxy inverso. No expone lógica de negocio.
-*   **Eventos:** Ninguno.
-*   **Integraciones:** Todos los servicios backend. Valida JWT y extrae `tenant_id`.
+*   **Alcance:** Punto de entrada único. Enrutamiento, autenticación JWT, rate limiting, CORS.
+*   **Responsabilidades Clave:** Proxy inverso, extracción de `tenant_id` del token, propagación de contexto.
 
 ---
 
 ### **3.2. `identity-service` (Puerto 3001)**
 
 *   **Alcance:** Gestión de identidad digital. Login, registro, MFA, OAuth2/OIDC, RBAC/ABAC.
-*   **Contrato API:** `POST /login`, `POST /register`, `GET /me`, `POST /logout`.
-*   **Eventos Emitidos:** `user.created`, `user.logged_in`, `role.assigned`.
-*   **Integraciones:** `user-profiles-service`, `compliance-service` (para consentimientos ARCO/GDPR).
+*   **Responsabilidades Clave:** Autenticación, autorización, gestión de sesiones, cumplimiento ARCO/GDPR.
 
 ---
 
 ### **3.3. `user-profiles-service` (Puerto 3002)**
 
 *   **Alcance:** Perfiles de usuario, roles por condominio, estructura organizacional (Junta Directiva, Comités).
-*   **Contrato API:** `GET /profiles/{user_id}`, `PUT /profiles/{user_id}/roles`.
-*   **Eventos Emitidos:** `profile.updated`.
-*   **Eventos Consumidos:** `user.created` (de `identity-service`).
-*   **Integraciones:** `governance-service` (para validar votantes), `reservation-service` (para validar reservas).
+*   **Responsabilidades Clave:** CRUD de perfiles, gestión de relaciones, fuente canónica de datos de usuario.
 
 ---
 
 ### **3.4. `tenancy-service` (Puerto 3003)**
 
 *   **Alcance:** Ciclo de vida de condominios. Unidades, alícuotas, onboarding, configuración dinámica.
-*   **Contrato API:** `POST /tenants`, `GET /tenants/{id}/units`, `GET /tenants/{id}/config`.
-*   **Eventos Emitidos:** `tenant.created`, `unit.assigned`.
-*   **Integraciones:** `finance-service` (para cuotas), `governance-service` (para votación ponderada).
+*   **Responsabilidades Clave:** Creación de tenants, cálculo de alícuotas, aislamiento de datos.
 
 ---
 
-### **3.5. `physical-security-service` (Puerto 3004)**
+### **3.5. `streaming-service` (Puerto 3014) — ¡NUEVO!**
 
-*   **Alcance:** Seguridad física del condominio. CCTV, control de accesos (huella, facial), sensores IoT, protocolos de riesgo (niños en piscina).
-*   **Contrato API:** `POST /access/validate`, `GET /cameras/{id}/stream`, `POST /alerts`.
-*   **Eventos Emitidos:** `security.breach`, `access.granted`, `risk.detected`.
-*   **Integraciones:** `notifications-service` (alertas), `asset-management-service` (cámaras como activos).
+*   **Alcance:** Gestión de sesiones de video en vivo para asambleas híbridas. Integración con Google Meet, generación y validación de QR, transcripción en tiempo real, grabación segura.
+*   **Responsabilidades Clave:**
+    *   Iniciar/terminar sesiones de video.
+    *   Generar QR dinámicos para validación de identidad y quórum.
+    *   Integrar Speech-to-Text para transcripción en vivo.
+    *   Grabar, cifrar y almacenar videos con hash de verificación.
+    *   Proporcionar controles de moderación (silenciar, ceder palabra).
+*   **Justificación:** Separado del `governance-service` para cumplir con SRP, permitir reutilización y manejar la complejidad técnica del streaming de forma aislada.
 
 ---
 
-### **3.6. `notifications-service` (Puerto 3005)**
+### **3.6. `physical-security-service` (Puerto 3004)**
+
+*   **Alcance:** Seguridad física del condominio. CCTV, control de accesos (huella, facial), sensores IoT, protocolos de riesgo.
+*   **Responsabilidades Clave:** Integración con hardware, detección de amenazas, alertas en tiempo real.
+
+---
+
+### **3.7. `notifications-service` (Puerto 3005)**
 
 *   **Alcance:** Envío de notificaciones (email, SMS, push). Registro y validación de esquemas de eventos (Event Schema Registry).
-*   **Contrato API:** `POST /send`, `GET /templates`.
-*   **Eventos Consumidos:** Cualquier evento del sistema que requiera notificación (ej: `assembly.scheduled`, `maintenance.completed`).
-*   **Integraciones:** Gateway a Twilio, SendGrid, FCM. Core para comunicación asíncrona.
+*   **Responsabilidades Clave:** Multicanal, gestión de plantillas, muro de noticias virtual.
 
 ---
 
-### **3.7. `documents-service` (Puerto 3006)**
+### **3.8. `documents-service` (Puerto 3006)**
 
-*   **Alcance:** Gestión de documentos legales. Almacenamiento (S3), generación desde plantillas, flujos de firma electrónica (simple y calificada).
-*   **Contrato API:** `POST /generate`, `POST /sign`, `GET /{doc_id}/download`.
-*   **Eventos Emitidos:** `document.signed`, `document.generated`.
-*   **Integraciones:** `governance-service` (actas), `compliance-service` (validación legal de contenido), Llama.pe (firma calificada).
+*   **Alcance:** Gestión de documentos legales. Almacenamiento (S3), generación desde plantillas, flujos de firma electrónica.
+*   **Responsabilidades Clave:** Generación de actas, contratos, carteles de convocatoria. Integración con Llama.pe.
 
 ---
 
-### **3.8. `finance-service` (Puerto 3007)**
+### **3.9. `finance-service` (Puerto 3007)**
 
-*   **Alcance:** Gestión financiera. Cuotas de mantenimiento, conciliación bancaria, reportes contables (PCGE, NIIF), impuestos (PLE/SIRE, DIAN, SAT).
-*   **Contrato API:** `GET /fees`, `POST /payments`, `GET /reports/balance`.
-*   **Eventos Emitidos:** `payment.received`, `quorum.validated`.
-*   **Patrón Clave:** **Saga** para transacciones distribuidas (registro de pago → actualización de saldo → notificación → validación de quórum).
-*   **Integraciones:** `governance-service`, `compliance-service` (para normas contables por país).
+*   **Alcance:** Gestión financiera. Cuotas de mantenimiento, conciliación bancaria, reportes contables (PCGE, NIIF), impuestos.
+*   **Responsabilidades Clave:** Cálculo de cuotas, procesamiento de pagos, validación de quórum para votaciones.
 
 ---
 
-### **3.9. `payroll-service` (Puerto 3008)**
+### **3.10. `payroll-service` (Puerto 3008)**
 
 *   **Alcance:** Cálculo y procesamiento de nóminas. Generación de PLAME y formatos equivalentes por país.
-*   **Contrato API:** `POST /run-payroll`, `GET /payslips/{id}`.
-*   **Eventos Emitidos:** `payroll.processed`.
-*   **Integraciones:** `finance-service` (costos), `hr-compliance-service` (datos del empleado).
+*   **Responsabilidades Clave:** Cálculo de salarios, beneficios, impuestos. Integración con `finance-service`.
 
 ---
 
-### **3.10. `hr-compliance-service` (Puerto 3009)**
+### **3.11. `hr-compliance-service` (Puerto 3009)**
 
-*   **Alcance:** Gestión del ciclo de vida del empleado y cumplimiento laboral. Contratos, evaluaciones, SST, comités, reportes de inspección.
-*   **Contrato API:** `POST /employees`, `GET /employees/{id}/compliance-status`.
-*   **Eventos Emitidos:** `compliance.risk`, `inspection.scheduled`.
-*   **Integraciones:** `compliance-service` (para reglas laborales por país), `physical-security-service` (accesos para personal).
+*   **Alcance:** Gestión del ciclo de vida del empleado y cumplimiento laboral. Contratos, evaluaciones, SST, comités.
+*   **Responsabilidades Clave:** Cumplimiento normativo laboral, gestión de riesgos, reportes de inspección.
 
 ---
 
-### **3.11. `asset-management-service` (Puerto 3010)**
+### **3.12. `asset-management-service` (Puerto 3010)**
 
-*   **Alcance:** Inventario de activos (hard y soft). Órdenes de trabajo (preventivas y correctivas), gestión de proveedores, indicadores de mantenimiento.
-*   **Contrato API:** `GET /assets`, `POST /work-orders`, `GET /assets/{id}/maintenance-log`.
-*   **Eventos Emitidos:** `work-order.created`, `asset.failure`.
-*   **Integraciones:** `reservation-service` (activos = áreas comunes), `finance-service` (costos de mantenimiento).
+*   **Alcance:** Inventario de activos (hard y soft). Órdenes de trabajo (preventivas y correctivas), gestión de proveedores.
+*   **Responsabilidades Clave:** Jerarquía de activos, mantenimiento, indicadores de disponibilidad.
 
 ---
 
-### **3.12. `governance-service` (Puerto 3011)**
+### **3.13. `governance-service` (Puerto 3011)**
 
-*   **Alcance:** Ciclo completo de asambleas. Convocatoria, agenda, votación ponderada en tiempo real, generación de actas, moderación con IA.
-*   **Contrato API:** `POST /assemblies`, `POST /assemblies/{id}/vote`, `GET /assemblies/{id}/results`.
-*   **Eventos Emitidos:** `assembly.concluded`, `vote.cast`.
-*   **Integraciones:** `compliance-service` (validación legal en tiempo real), `documents-service` (generación de actas), `finance-service` (validación de quórum).
-
----
-
-### **3.13. `reservation-service` (Puerto 3013)**
-
-*   **Alcance:** Gestión de reservas de áreas comunes. Calendario, reglas de uso (horarios, duración, capacidad), validación de conflictos.
-*   **Contrato API:** `GET /areas`, `POST /reservations`, `GET /reservations/my`.
-*   **Eventos Emitidos:** `reservation.confirmed`, `reservation.cancelled`.
-*   **Integraciones:** `asset-management-service` (las áreas son activos), `notifications-service` (recordatorios), `finance-service` (bloqueo por mora).
+*   **Alcance:** Ciclo completo de asambleas. Convocatoria con flujos legales (Presidente / 25% propietarios), votación ponderada, generación de actas con IA (MCP).
+*   **Responsabilidades Clave:**
+    *   Flujos de aprobación de convocatorias.
+    *   Validación de quórum en tiempo real.
+    *   Orquestación de votaciones.
+    *   Integración con `streaming-service` para asambleas híbridas.
+    *   Generación de borradores de actas con NLP.
+*   **Dependencias Clave:** `streaming-service`, `compliance-service`, `documents-service`, `finance-service`.
 
 ---
 
-### **3.14. `compliance-service` (Puerto 3012)**
+### **3.14. `reservation-service` (Puerto 3013)**
 
-*   **Alcance:** **Motor de Cumplimiento Normativo Global.** Valida reglas legales (financieras, laborales, de asambleas, protección de datos) basadas en el país del tenant y su reglamento interno. Usa un motor de reglas + LLM para interpretación semántica.
-*   **Contrato API:** `POST /validate` (envía contexto y recibe veredicto de cumplimiento).
-*   **Eventos Consumidos:** Cualquier evento que requiera validación legal (ej: `assembly.created`, `employee.hired`, `fee.calculated`).
-*   **Integraciones:** **Todos los servicios.** Es el cerebro legal del sistema.
+*   **Alcance:** Gestión de reservas de áreas comunes. Calendario, reglas de uso, validación de conflictos.
+*   **Responsabilidades Clave:** Reservas, recordatorios, integración con `asset-management-service`.
+
+---
+
+### **3.15. `compliance-service` (Puerto 3012)**
+
+*   **Alcance:** Motor de Cumplimiento Normativo Global. Valida reglas legales (financieras, laborales, de asambleas) basadas en el país del tenant y su reglamento interno. Usa motor de reglas + LLM.
+*   **Responsabilidades Clave:** Validación legal en tiempo real, gestión de perfiles regulatorios, adaptación multi-país.
 
 ---
 
 ## 🌐 **4. Estrategia Multi-País y Localización**
 
-### **4.1. Motor de Cumplimiento (`compliance-service`)**
-
-*   **Perfiles Regulatorios:** Cada tenant tiene un perfil que define:
-    *   País y región.
-    *   Tipo de propiedad (residencial, comercial, mixto).
-    *   Marco legal aplicable (Ley de Propiedad Horizontal, Código Civil, etc.).
-    *   Reglamento Interno cargado como documento estructurado.
-*   **Motor de Reglas:** Basado en **Drools**. Las reglas se definen en archivos `.drl` y se almacenan en un repositorio versionado.
-*   **Validación con LLM:** Para casos ambiguos o no cubiertos por reglas, se consulta a un LLM (Llama 3, GPT-4) con el contexto legal y el reglamento interno. El LLM devuelve un análisis que el motor interpreta.
-
-### **4.2. Localización de Contenidos**
-
-*   **Traducción de UI:** Usando `i18next` en los frontends.
-*   **Formatos de Fecha/Moneda:** Configurables por tenant.
-*   **Documentos Legales:** Plantillas de actas, contratos y comunicaciones adaptadas por jurisdicción, generadas por `documents-service`.
+*   **Motor de Cumplimiento (`compliance-service`):** Define perfiles regulatorios por país (Perú, Chile, México, España, etc.) y tipo de propiedad.
+*   **Localización de UI:** Traducción de interfaces con `i18next`.
+*   **Formatos Legales:** Plantillas de documentos y reportes adaptadas por jurisdicción.
+*   **Moneda y Fecha:** Configurables por tenant.
 
 ---
 
 ## 🛡️ **5. Seguridad y Cumplimiento**
 
-### **5.1. Seguridad de la Información**
-
-*   **Autenticación:** OAuth2/OIDC + MFA (TOTP/WebAuthn).
+*   **Autenticación:** JWT + MFA.
 *   **Autorización:** RBAC/ABAC con políticas dinámicas.
 *   **Cifrado:** AES-256 en reposo, TLS 1.3 en tránsito.
-*   **PII:** Minimización de datos. Consentimientos explícitos gestionados por `compliance-service`.
-
-### **5.2. Cumplimiento Normativo**
-
-*   **Protección de Datos:** Cumple con GDPR (Europa), LGPD (Brasil), Ley 29733 (Perú) y equivalentes. Derechos ARCO implementados.
-*   **Firma Electrónica:** Integración con proveedores locales acreditados (Llama.pe, DocuSign, etc.) para validez legal.
-*   **Auditoría:** Trazas inmutables de todas las operaciones críticas (event sourcing).
+*   **Auditoría:** Trazas inmutables para todas las operaciones críticas (event sourcing).
+*   **Privacidad:** Cumplimiento con GDPR, LGPD, Ley 29733. Consentimientos explícitos.
 
 ---
 
 ## 🚀 **6. Infraestructura y Operaciones**
 
-### **6.1. Stack Tecnológico**
-
-*   **Backend:** Node.js + NestJS (TypeScript).
+*   **Backend:** Node.js + NestJS.
 *   **Frontend:** React + React Native + TypeScript.
 *   **Base de Datos:** PostgreSQL (por servicio) + RLS.
 *   **Mensajería:** RabbitMQ.
 *   **Almacenamiento:** AWS S3.
-*   **Infraestructura:** Docker + Kubernetes (EKS/GKE) + AWS.
+*   **Infraestructura:** Docker + Kubernetes + AWS.
 *   **Observabilidad:** Prometheus + Grafana + OpenTelemetry + ELK.
-
-### **6.2. Despliegue y CI/CD**
-
-*   **GitOps:** ArgoCD para despliegues automáticos.
-*   **Feature Flags:** LaunchDarkly para activar funcionalidades por tenant o país.
-*   **Canary Releases:** Despliegues graduales.
-*   **Contrato de Observabilidad:** Todos los servicios deben emitir métricas, trazas y logs estructurados con `trace_id`.
 
 ---
 
-## 📈 **7. Métricas de Éxito y KPIs**
+## ✅ **7. Criterios de Aceptación (Definition of Done)**
 
-| Área | KPI | Objetivo |
-|------|-----|----------|
-| **Adopción** | % de propietarios activos mensuales | > 70% |
-| **Gobernanza** | % de asambleas realizadas digitalmente | > 90% |
-| **Operaciones** | Tiempo promedio de cierre de órdenes de trabajo | < 48h |
-| **Cumplimiento** | % de reglas legales validadas automáticamente | > 95% |
-| **Satisfacción** | NPS de residentes y administradores | > 50 |
+Para que un microservicio se considere “completo” y listo para producción, debe cumplir con:
+
+1.  **Funcionalidad:** Todas las historias de usuario del alcance están implementadas y probadas.
+2.  **API:** Contrato de API definido en OpenAPI/Swagger y publicado.
+3.  **Pruebas:** >80% de cobertura de pruebas unitarias e integración. Pruebas E2E para flujos críticos.
+4.  **Observabilidad:** Métricas, logs estructurados y trazas distribuidas implementadas.
+5.  **Seguridad:** Auditoría de seguridad completada. No hay vulnerabilidades críticas.
+6.  **Documentación:** README.md con instrucciones de despliegue, configuración y uso.
+7.  **CI/CD:** Pipeline automatizado de build, test y despliegue.
 
 ---
 
@@ -322,12 +251,23 @@ Cada servicio sigue el estándar `spec-kit`: **Nombre, Puerto, Alcance, Contrato
 
 ---
 
-## ✅ **9. Conclusión**
+## 📌 **9. Exclusiones (Out of Scope)**
 
-Esta especificación, alineada con la metodología `spec-kit`, define a SmartEdify como una **plataforma global, resiliente y legalmente adaptable**. La arquitectura de 13 microservicios, coronada por el `compliance-service`, permite una expansión ágil y segura a nuevos mercados, convirtiendo los desafíos regulatorios en una ventaja competitiva insuperable.
+*   Desarrollo de hardware (cámaras, sensores, cerraduras).
+*   Provisión de servicios de internet o conectividad para los condominios.
+*   Gestión de propiedades individuales (no comunes) dentro de los departamentos.
+*   Contabilidad personal de los propietarios (solo la relacionada con el condominio).
+*   Reemplazo de abogados o asesores legales humanos (el sistema asiste, no reemplaza).
+
+---
+
+## ✅ **10. Conclusión**
+
+Esta especificación de alcance define a SmartEdify como una **plataforma global, resiliente y legalmente adaptable**. La arquitectura de 14 microservicios, con la introducción crítica del `streaming-service` como componente independiente, permite una expansión ágil y segura a nuevos mercados, convirtiendo los desafíos regulatorios y técnicos en una ventaja competitiva insuperable.
+
 La plataforma no solo digitaliza procesos; **reinventa la forma en que las comunidades se gobiernan, operan y cumplen con la ley en un mundo multi-jurisdiccional.**
 
 ---
 
 **© 2025 SmartEdify Global. Todos los derechos reservados.**  
-*Documento generado automáticamente a partir de la especificación técnica. Última actualización: 2025-04-05.*
+*Documento generado automáticamente a partir de la especificación técnica.*
