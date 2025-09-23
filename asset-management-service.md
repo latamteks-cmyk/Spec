@@ -38,7 +38,7 @@ Este servicio no solo gestiona tickets; **gestiona el valor del activo físico d
 graph TD
     subgraph Frontend
         F1[Admin Web] --> G
-        F2[Mobile App (Técnico)] --> G
+        F2[Mobile App 'Técnico'] --> G
         F3[Resident App] --> G
     end
     subgraph Gateway
