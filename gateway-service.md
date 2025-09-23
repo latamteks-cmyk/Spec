@@ -1,101 +1,295 @@
-# 📘 Especificación Técnica: **gateway-service** (Puerto 8080) — Versión 1.0 (Pre-Build Freeze)
 
-**Rol:** Puerta de entrada L7 única para web, móvil y terceros; enrutamiento, autenticación/ autorización centralizadas, rate limiting y CORS.&#x20;
-**Principio:** PEP (Policy Enforcement Point) en el gateway; PDP externo (OPA/Cedar). “Fail-closed”.&#x20;
+# 📘 Especificación Técnica: `gateway-service` (Puerto 8080) — Versión 2.0 
 
----
-
-## 🧭 Alcance
-
-1. Terminar autenticación OIDC/DPoP y validaciones criptográficas **locales**; llamar **introspección** solo para tokens opacos y siempre con mTLS/private\_key\_jwt.&#x20;
-2. Propagar contexto multi-tenant/usuario a microservicios y aplicar PBAC (RBAC+ABAC+ReBAC) vía PDP.&#x20;
-3. Centralizar rate limiting/anti-abuso y devolver errores RFC-7807 uniformes.&#x20;
+**Metodología:** `github/spec-kit`
+**Estado:** `✅ Listo para spec`
+**Última actualización:** `2025-09-23`
+**Rol:** Punto de entrada L7 para todos los clientes (web, móvil, terceros), seguridad transversal, enrutamiento, observabilidad, anti-abuso.
+**No-Goals:** No emite ni valida identidad; no implementa lógica de dominio.
 
 ---
 
-## 🏗️ Arquitectura
+## 1) Alcance y responsabilidades
 
-* **Plano de datos**: proxy L7 (HTTP/1.1, HTTP/2, WS). Rutas por servicio (`/identity`, `/governance`, etc.).&#x20;
-* **Plano de control**:
+* **Autenticación y Autorización L7**
 
-  * **Validador JWT/COSE**: ES256/EdDSA + `kid` obligatorio; **prohibido HS256**. Rollover con 2 `kid` activos por **tenant**. JWKS caché **TTL ≤ 5 min**.  &#x20;
-  * **DPoP**: verificación de prueba (`htu`,`htm`,`jti` y `ath` recomendado), anti-replay distribuido.  &#x20;
-  * **PDP**: consulta por política (OPA/Cedar) para permisos (RBAC/ABAC/ReBAC) con caché regional y “fail-closed”.&#x20;
+  * Validación **JWT JWS (ES256/EdDSA)** con `kid` obligatorio.
+  * **DPoP** (HTTP + WebSocket handshake) con anti-replay distribuido.
+  * mTLS interno (SPIFFE/SPIRE) a microservicios.
+* **Multi-tenant**
 
----
+  * Extrae `tenant_id` del JWT; lo propaga en `x-tenant-id`.
+  * CORS por tenant y *rate limits* por `tenant_id`, `sub` y **ASN**.
+* **Resiliencia**
 
-## 🔐 Seguridad y Cumplimiento
+  * Circuit breaking, *outlier detection*, *hedged retries*, *timeouts*.
+* **Anti-abuso / WAF**
 
-* **OIDC**: únicamente `authorization_code` **con PKCE**; bloquear implícito/híbrido a nivel de ruta.&#x20;
-* **Introspección**: solo cuando aplique; requiere **mTLS o private\_key\_jwt**.&#x20;
-* **Criptografía transversal**: tokens firmados con **ES256/EdDSA**, `kid` en header, JWKS por **tenant** (`iss` por tenant). **Cero HS256** en código y docs.&#x20;
-* **Rollover seguro**: aceptar tokens firmados con cualquiera de las 2 claves activas durante 7 días; refresco JWKS **≤5 min**.&#x20;
-* **WebSocket PoP**: exigir DPoP en `Upgrade`, vida útil token ≤5 min, soporte de **renovación in-band**, cierre `4401` si expira.&#x20;
-* **Errores**: normalizar a **RFC-7807**; propagar/estandarizar `RateLimit-*` y `Retry-After` en 429. &#x20;
+  * Límite de tamaño, verbos permitidos, *content-type allowlist*, throttling WS (1 msg/s).
+* **Observabilidad**
 
----
+  * RED metrics, tracing W3C, logs WORM con `kid`, `jti`, `tenant_id`.
+* **Ruteo**
 
-## 🔌 Contrato (comportamiento observable)
-
-* **Entrada**
-
-  * `Authorization: DPoP <JWT>` o `Bearer <JWT>`; si DPoP ⇒ validar prueba y `cnf.jkt`.&#x20;
-  * **OIDC** `/authorize`: rechazar `response_type` ≠ `code` o sin `code_challenge`.&#x20;
-* **Salida**
-
-  * **Contexto inyectado a upstream** (cabeceras):
-    `x-tenant-id` (de `iss`/`tenant_id`), `x-user-id` (`sub`), `x-scope`, `x-auth-method`, `x-session-version`, `x-cnf-jkt`, `x-request-id`. &#x20;
-  * **Errores**: `application/problem+json` (RFC-7807) consistente entre servicios.&#x20;
-* **Rutas críticas**
-
-  * **/identity/** → validación local (JWKS) y paso transparente a IdP; **introspect** solo si token opaco.&#x20;
-  * **/governance/** → exigir PoP (DPoP/mTLS) en acciones críticas y límites de tasa por usuario/tenant/ASN.&#x20;
-  * **WebSocket** → validar DPoP en handshake, permitir `token_refresh` in-band, cerrar `4401` al expirar.&#x20;
+  * Proxy a los 14 servicios del SCOPE; soporte WebSocket/HTTP3.
 
 ---
 
-## 📊 Observabilidad
+## 2) Arquitectura
 
-* **Métricas Prometheus**:
-  `http_request_duration_seconds{route}`, `jwks_cache_refresh_total`, `key_rotation_events_total`, `dpop_replay_denied_total`, `ratelimit_block_total`.&#x20;
-* **Trazas (OTel)**: anexar `tenant_id`, `user_id`, `auth_method`, `assurance_level`.&#x20;
+* **Tecnología base:** Envoy Proxy (gateway) + extensiones (WASM para DPoP), Redis (anti-replay / rate-limit), Prometheus, OTel, S3 (WORM logs).
+* **Transporte:** HTTP/3 (cliente) ↔ HTTP/2 (backend).
+* **mTLS interno:** SPIFFE/SPIRE (SVID por servicio).
+* **Descubrimiento:** Static/DNS por clúster (K8s).
 
----
+### Rutas principales (prefijos → servicio)
 
-## ⚙️ Configuración clave
+* `/api/v1/identity/*` → `identity-service:3001`
+* `/api/v1/governance/*` → `governance-service:3011`
+* `/api/v1/streaming/*` → `streaming-service:3014`
+* `/api/v1/documents/*` → `documents-service:3006`
+* `/api/v1/notifications/*` → `notifications-service:3005`
+* `/api/v1/finance/*` → `finance-service:3007`
+* `/api/v1/tenancy/*` → `tenancy-service:3003`
+* `/api/v1/user-profiles/*` → `user-profiles-service:3002`
+* … (resto según SCOPE)
 
-* **JWKS**: caché por **tenant** (`iss`=`https://auth.smartedify.global/t/{tenant_id}`) con TTL **≤5 min** y pre-fetch en rotación. &#x20;
-* **DPoP**: ventana anti-replay distribuida; validación `htu`,`htm`,`jti` (y `ath` recomendado). &#x20;
-* **Rate limiting**: por usuario, tenant y ASN; cabeceras **`RateLimit-*`**.&#x20;
-
----
-
-## ✅ Criterios de Aceptación
-
-1. **PKCE forzado** en `/authorize`; implícito/híbrido bloqueados.&#x20;
-2. **Validación local JWT/COSE** (ES256/EdDSA, `kid`) + **JWKS TTL ≤5 min**; soportar **rollover 7 días** (2 `kid`).&#x20;
-3. **DPoP** operativo en REST y WS (handshake/renovación/cierre `4401`).&#x20;
-4. **Introspección** protegida (mTLS/private\_key\_jwt) solo para tokens opacos.&#x20;
-5. **RFC-7807** homogéneo + **RateLimit-\*\`** en 429.&#x20;
-6. **PEP fail-closed** con PDP (OPA/Cedar) y caché regional.&#x20;
-
----
-
-## 🔄 Compatibilidad cruzada
-
-* **identity-service**: cumple PKCE, DPoP, JWKS por tenant, rotación y `kid`. &#x20;
-* **governance-service**: requiere PoP y rate limits coherentes; auditoría verificable pública. &#x20;
+> **Nota QR (P0 ya aplicado en SCOPE):** El gateway **solo enruta**:
+>
+> * Emisión: `POST /identity/v2/contextual-tokens`
+> * Validación: `POST /identity/v2/contextual-tokens/validate`
+>   `streaming-service` únicamente **muestra/escanea**, sin emitir/validar.
 
 ---
 
-## 🧪 Pruebas mínimas
+## 3) Seguridad (hardening aplicado)
 
-* Rotación de claves: emitir con clave antigua/nueva, **validar ambas** durante 7 días; observar `jwks_cache_refresh_total`.&#x20;
-* WS: handshake con DPoP válido, **renovación in-band**, cierre `4401` post-exp.&#x20;
-* OIDC: rechazar petición `/authorize` sin PKCE.&#x20;
+### 3.1 JWT/JWKS
+
+* **Algoritmo:** `ES256` (o `EdDSA`); **prohibido `HS256`**.
+* **Header:** `kid` **obligatorio**; validación contra JWKS.
+* **Issuer:** `iss = https://auth.smartedify.global/t/{tenant_id}`.
+* **JWKS:** `/.well-known/jwks.json?tenant_id={tenant_id}` con **TTL ≤ 300s** y *negative caching* 60s.
+* **Rollover:** Soportar **dos `kid` activos** (7 días) sin 401.
+* **Claims mínimos:** `sub`, `aud`, `exp`, `nbf`, `iat`, `jti`, `tenant_id`, `scope`, `cnf` (cuando aplique).
+* **Tiempos:** *clock skew* ≤ 10s; `exp/nbf` obligatorios.
+
+### 3.2 DPoP (HTTP y WebSocket)
+
+* **Prueba requerida:** Header `DPoP` (RFC 9449) en todas las peticiones protegidas y en **`Upgrade` WS**.
+* **Validaciones:** `htu` (URL), `htm` (método), `jti` (único), `iat` (≤10s), `cnf.jkt` = *thumbprint* del cliente.
+* **Anti-replay distribuido:** Redis key `(tenant_id, jkt, jti)` TTL=300s.
+* **WS:** exige `DPoP` en handshake; **cierra con `4401`** si expira o si el *frame* de refresh no valida (vía WASM, sin cambios upstream).
+
+### 3.3 mTLS interno
+
+* **Requisito:** mTLS gateway↔servicios (SPIFFE); *SAN* por SPIFFE ID; *pinning* de CA interna.
+
+### 3.4 WAF / Header hygiene
+
+* Bloqueo de `TRACE`, `TRACK`, `CONNECT` (no túnel).
+* `Content-Length` máx configurable (p.ej., 5MB API).
+* *Allowlist* de `Content-Type`: `application/json`, `multipart/form-data` (rutas específicas), `text/*`.
+* Quita *hop-by-hop headers* y fuerza:
+
+  * `Strict-Transport-Security: max-age=63072000; includeSubDomains; preload`
+  * `X-Content-Type-Options: nosniff`
+  * `Referrer-Policy: no-referrer`
+  * `Permissions-Policy: camera=(), microphone=()`
 
 ---
 
-> Nota: El **streaming-service** **no** emite/valida QR; solo muestra/escanea y delega en `identity-service` (`/contextual-tokens`, `/validate`), coherente con las especificaciones finales.&#x20;
+## 4) Resiliencia y Performance
+
+* **Circuit breaking:** por clúster (conns/rqs/retries); *outlier detection* (ejection 5xx).
+* **Timeouts:** `connect=2s`, `header=5s`, `idle=60s`, `total=15s` (por ruta).
+* **Hedged retries:** `per_try_timeout=800ms`, `num_retries=2`, `hedge_on_per_try_timeout=true`.
+* **Backpressure WS:** 1 msg/s por conexión; `per_connection_buffer_limit_bytes=1MiB`.
+* **Compresión selectiva:** Brotli/Gzip solo `text/*` y `application/json` > 1KB (no JWT/COSE).
+
+**SLOs**
+
+* P95 *ingress latency* ≤ 120 ms; error rate 5xx < 0.5%.
+* Disponibilidad mensual ≥ 99.95%.
 
 ---
+
+## 5) Rate limiting (anti-abuso)
+
+* **Dimensiones:** por `tenant_id`, `sub` y **ASN** (cabecera `x-client-asn`).
+* **Política por tipo de ruta:**
+
+  * **Write** (POST/PATCH/DELETE): p. ej., 60 r/m (tenant), 30 r/m (usuario).
+  * **Read** (GET): p. ej., 600 r/m (tenant), 120 r/m (usuario).
+* **WebSocket:** 1 msg/s; ráfaga 3; cierre si excede.
+* **Respuesta 429:** `RateLimit-*` y `Retry-After` (formato RFC).
+
+---
+
+## 6) CORS y políticas por tenant
+
+* **Per-tenant allowlist** de orígenes; `credentials=true` opcional.
+* **Métodos permitidos:** `GET, POST, PUT, PATCH, DELETE`.
+* **Expuestos:** `RateLimit-*`, `Traceparent`, `X-Request-Id`.
+
+---
+
+## 7) Observabilidad y auditoría
+
+* **Métricas (Prometheus):**
+
+  * `http_requests_total{route,tenant,code}`
+  * `http_request_duration_seconds_bucket{route,tenant}`
+  * `jwt_validation_fail_total{reason}`
+  * `dpop_replay_denied_total`
+  * `jwks_cache_refresh_total`, `key_rotation_events_total`
+  * `ws_messages_total{route}`, `ws_backpressure_drops_total`
+* **Trazas (OTel):** W3C `traceparent`; *baggage* con `tenant_id`, `sub` (si aplica).
+* **Logs WORM (S3 Object Lock):** JSON con `timestamp`, `route`, `tenant_id`, `sub`, `kid`, `jti`, `asn`, `status`, `latency_ms`, `trace_id`.
+* **Dashboards:** RED por servicio y ruta; panel de freshness JWKS; panel DPoP replays.
+
+---
+
+## 8) Contratos y compatibilidad
+
+* **Errores RFC 7807:** El gateway **propaga** los payloads de los servicios; cuando origina (WAF/429/401), emite RFC 7807 coherente.
+
+  * `401 Unauthorized` (JWT inválido/expirado/DPoP fallido)
+  * `429 Too Many Requests` (con `RateLimit-*`)
+  * `400 Bad Request` (método/headers/payload inválidos)
+* **PKCE obligatorio:** El gateway no implementa OIDC, pero **rechaza** `/authorize` sin `code_challenge(+_method)` (pre-filtro liviano), en línea con `identity-service`.
+* **QR contextuales:** Rutas de emisión/validación **solo** a `identity-service`.
+
+---
+
+## 9) Endpoints propios del gateway
+
+* `GET /healthz` — vida
+* `GET /readyz` — *readiness* (backends críticos reachables, JWKS fresco)
+* `GET /metrics` — Prometheus
+* `GET /.well-known/egress-policy` — (opcional) política activa por tenant (solo lectura)
+
+---
+
+## 10) Configuración (referencia)
+
+**Env**
+
+```
+JWKS_TTL_SECONDS=300
+JWKS_NEG_CACHE_SECONDS=60
+DPOP_IAT_SKEW_SECONDS=10
+DPOP_REPLAY_TTL_SECONDS=300
+WS_MSGS_PER_SEC=1
+CORS_CONFIG=/etc/gateway/cors-tenants.yaml
+RATE_LIMIT_CONFIG=/etc/gateway/ratelimit.yaml
+WAF_MAX_BODY_BYTES=5242880
+MTLS_SPIFFE_TRUST_DOMAIN=smartedify.global
+```
+
+**Dependencias**
+
+* Redis (anti-replay / rate-limit)
+* SPIRE Server/Agent (mTLS)
+* Prometheus/OTel collector
+* S3 (logs WORM)
+
+---
+
+## 11) Despliegue
+
+* **Estrategia:** Canary 10%→50%→100%; *shadow mode* 48h para WAF/ratelimits antes de bloquear.
+* **HTTP/3 enable:** ALPN `h3,h2,h2c`.
+* **Rollback seguro:** *immutable releases* + *feature flags* (bloqueo WAF/rate en caliente).
+
+---
+
+## 12) Pruebas (DoD)
+
+1. **Rollover JWKS (dos `kid`)** sin 401; refresco ≤ 5 min.
+2. **DPoP anti-replay:** segundo `jti` rechazado; métricas incrementan.
+3. **PKCE guard:** `/authorize` sin `code_challenge` → 400 RFC7807.
+4. **WS handshake DPoP** y cierre `4401` al expirar/refresh inválido.
+5. **429 con RateLimit-\*:** límites por `tenant/sub/ASN` respetados.
+6. **WAF:** bloquea `TRACE`/`CONNECT`, `Content-Type` no permitido y cuerpos > límite.
+7. **mTLS interno:** rechaza conexiones sin SVID válido.
+8. **Observabilidad:** métricas, trazas y logs WORM disponibles; paneles verdes.
+9. **Compresión selectiva** activa solo en tipos/umbrales definidos.
+10. **SLOs**: P95 latencia ≤120 ms bajo carga nominal.
+
+---
+
+## 13) Riesgos y mitigaciones
+
+* **Cache JWKS desactualizada** → TTL ≤300s + *prefetch* + invalidación por `kid`.
+* **Replays DPoP** → Redis distribuido + baja ventana `iat` (10s).
+* **Head-of-line blocking WS** → backpressure + buffers limitados.
+* **Degradación backend** → circuit breaking + hedging.
+* **Falsos positivos WAF** → *shadow mode* previo, *feature flags* por ruta.
+
+---
+
+## 14) Apéndices (fragmentos de configuración)
+
+**JWT + JWKS**
+
+```yaml
+- name: envoy.filters.http.jwt_authn
+  typed_config:
+    "@type": type.googleapis.com/envoy.extensions.filters.http.jwt_authn.v3.JwtAuthentication
+    providers:
+      smartedify:
+        issuer: "https://auth.smartedify.global/t/{tenant_id}"
+        remote_jwks:
+          http_uri:
+            uri: "https://auth.smartedify.global/.well-known/jwks.json?tenant_id={tenant_id}"
+            cluster: jwks_cluster
+            timeout: 3s
+          cache_duration: 300s
+        forward: true
+    rules: [{ match: { prefix: "/" }, requires: { provider_name: "smartedify" } }]
+```
+
+**DPoP (WASM)**
+
+```yaml
+- name: envoy.filters.http.wasm
+  typed_config:
+    "@type": type.googleapis.com/envoy.extensions.filters.http.wasm.v3.Wasm
+    config:
+      name: dpop_validator
+      vm_config: { runtime: "envoy.wasm.runtime.v8", code: { local: { filename: "/plugins/dpop_validator.wasm" } } }
+      configuration:
+        "@type": type.googleapis.com/google.protobuf.StringValue
+        value: '{"replay_cache":{"type":"redis","dsn":"redis://rate-limit:6379","ttl_seconds":300},"iat_skew_seconds":10,"require_on_upgrade":true,"ws_close_code_on_fail":4401}'
+```
+
+**Rate limiting**
+
+```yaml
+- name: envoy.filters.http.ratelimit
+  typed_config:
+    "@type": type.googleapis.com/envoy.extensions.filters.http.ratelimit.v3.RateLimit
+    domain: "smartedify"
+    failure_mode_deny: true
+    rate_limit_service: { grpc_service: { envoy_grpc: { cluster_name: ratelimit_cluster } } }
+```
+
+**WAF & headers**
+
+```yaml
+- name: envoy.filters.http.lua
+  typed_config:
+    "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua
+    inline_code: |
+      function envoy_on_response(h)
+        h:headers():add("Strict-Transport-Security","max-age=63072000; includeSubDomains; preload")
+        h:headers():add("X-Content-Type-Options","nosniff")
+        h:headers():add("Referrer-Policy","no-referrer")
+        h:headers():add("Permissions-Policy","camera=(), microphone=()")
+      end
+```
+
+---
+
+**Conclusión:** este `gateway-service` cumple el alcance del SCOPE y las exigencias de `identity-service`/`governance-service` ya cerradas (ES256/EdDSA, `kid`, JWKS TTL ≤5 min, PKCE, DPoP, QR centralizado en IdP), aportando seguridad transversal, resiliencia y DX sin requerir cambios upstream.
