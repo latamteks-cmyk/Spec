@@ -27,7 +27,7 @@ Su objetivo es convertirse en el sistema operativo digital para comunidades, com
 | --- | --- | --- |
 | Microservicios | 14 servicios independientes, cada uno con su propia base de datos y ciclo de vida. | Escalabilidad, despliegue independiente, aislamiento de fallos. |
 | API Gateway | Punto de entrada único para todos los clientes (web, móvil, terceros). | Centralización de seguridad, enrutamiento, rate limiting. |
-| Event-Driven | Comunicación asíncrona vía RabbitMQ. Registro y validación de esquemas en `notifications-service`. | Desacoplamiento, resiliencia, escalabilidad horizontal. |
+| Event-Driven | Comunicación asíncrona vía Apache Kafka. Registro y validación de esquemas en `notifications-service`. | Desacoplamiento, resiliencia, escalabilidad horizontal. |
 | Multi-Tenant | Modelo: `Shared Database, Shared Schema` con discriminador `condominium_id` + RLS. | Eficiencia operativa, escalabilidad a miles de tenants. |
 | Frontend Monorepo | Aplicaciones: User Web, Admin Web, Mobile App (React/React Native). | Reutilización de código, consistencia UX, despliegue coordinado. |
 
