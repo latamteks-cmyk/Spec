@@ -6,7 +6,6 @@
 > **Alcance Global:** Plataforma de Gobernanza Comunitaria Internacional para Asambleas Híbridas (Presencial/Virtual/Mixta) con Validación Legal Adaptativa, Moderación Inteligente, Auditoría Inmutable y Soporte para Participación Inclusiva.  
 > **Visión Internacional:** Diseñar un sistema jurídicamente agnóstico que se adapte dinámicamente a cualquier marco regulatorio local (Perú, Chile, México, España, Brasil, etc.) mediante el motor de cumplimiento (`compliance-service`), garantizando transparencia, trazabilidad y validez legal universal.
 ---
-
 ## 🧭 **1. Visión y Justificación Global**
 
 El `governance-service` es el **corazón democrático, legal y estratégico** de SmartEdify a nivel global. Su misión es orquestar el ciclo de vida completo de las asambleas de propietarios — desde la iniciativa de convocatoria hasta la generación del acta final — de manera **totalmente digital, legalmente válida, culturalmente inclusiva y estratégicamente escalable**.
@@ -425,7 +424,7 @@ GET    /api/v1/assemblies/{id}/async-status     # Obtener estado y tiempo restan
 
 ## ✅ **9. Conclusión**
 
-Esta **Versión 2.0.0** del `governance-service` establece las bases para un sistema de gobernanza comunitaria **verdaderamente global, inclusivo, legalmente robusto y estratégicamente avanzado**. Al externalizar toda la lógica normativa al `compliance-service` y al diseñar mecanismos de participación flexibles (digital, presencial, biométrica, asíncrona, por delegación), el servicio está preparado para operar en cualquier jurisdicción del mundo.
+Esta **Versión 4.0.0** del `governance-service` establece las bases para un sistema de gobernanza comunitaria **verdaderamente global, inclusivo, legalmente robusto y estratégicamente avanzado**. Al externalizar toda la lógica normativa al `compliance-service` y al diseñar mecanismos de participación flexibles (digital, presencial, biométrica, asíncrona, por delegación), el servicio está preparado para operar en cualquier jurisdicción del mundo.
 
 La arquitectura prioriza la **trazabilidad absoluta** (event sourcing, sellos criptográficos), la **experiencia de usuario inclusiva** (múltiples métodos de validación, votación asistida, canal de aportes con IA) y la **innovación estratégica** (asambleas asíncronas, marketplace legal, productos de datos), convirtiendo a SmartEdify en la plataforma de referencia para la democracia digital en comunidades residenciales y comerciales a nivel internacional.
 
