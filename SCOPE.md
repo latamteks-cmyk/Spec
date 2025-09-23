@@ -297,9 +297,9 @@ Para que un microservicio se considere “completo” y listo para producción, 
 
 ### **📅 8. Hoja de Ruta (Roadmap) — Visión Global**
 
-*   **Trimestre 1:** Lanzamiento en Perú (PMV: `governance-service`, `reservation-service`, `asset-management-service` + `streaming-service`).
-*   **Trimestre 2:** Expansión a Chile y Colombia. Adaptación de `compliance-service`.
-*   **Trimestre 3:** Lanzamiento en México y España. Integración con proveedores locales.
+*   **Fase 1:** Lanzamiento en Perú (PMV: `governance-service`, `reservation-service`, `asset-management-service` + `streaming-service`).
+*   **Fase 2:** Expansión a Chile y Colombia. Adaptación de `compliance-service`.
+*   **Fase 3:** Lanzamiento en México y España. Integración con proveedores locales.
 *   **Año 2:** Expansión a Brasil y resto de LATAM. Soporte para LGPD.
 *   **Año 3:** Entrada en mercado Europeo. Cumplimiento con GDPR y normativas de eficiencia energética.
 
