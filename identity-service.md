@@ -4,7 +4,7 @@
 > **Versión:** `3.0`  
 > **Estado:** `En Revisión Arquitectónica`  
 > **Última Actualización:** `2025-09-23`  
-> **Alcance:** Proveedor central de identidad, autenticación, autorización y sesiones en entorno multi-tenant con cumplimiento GDPR/ARCO y Ley Nº 29733, con soporte expandido para autenticación biométrica y QR para integración transnacional.  
+> **Alcance:** Proveedor central de identidad, autenticación, autorización y sesiones en entorno multi-tenant, con soporte expandido para autenticación biométrica y QR para integración transnacional.  
 > **Visión Transnacional:** Servicio de identidad capaz de operar en múltiples jurisdicciones con adaptación local de políticas de autenticación y privacidad, soportando estándares internacionales y requisitos legales específicos por país.
 
 ---
