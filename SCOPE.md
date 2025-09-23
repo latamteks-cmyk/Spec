@@ -274,7 +274,7 @@ Cada servicio es autónomo, desplegable de forma independiente, y sigue el princ
 *   **Backend:** Node.js + NestJS.
 *   **Frontend:** React + React Native + TypeScript.
 *   **Base de Datos:** PostgreSQL (por servicio) + RLS.
-*   **Mensajería:** RabbitMQ.
+*   **Mensajería:** Apache Kafka.
 *   **Almacenamiento:** AWS S3.
 *   **Infraestructura:** Docker + Kubernetes + AWS.
 *   **Observabilidad:** Prometheus + Grafana + OpenTelemetry + ELK.
