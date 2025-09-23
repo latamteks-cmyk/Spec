@@ -1,6 +1,6 @@
-# 📘 **Especificación Técnica: `governance-service` (Puerto 3011) — Versión 2.0**
+# 📘 **Especificación Técnica: `governance-service` (Puerto 3011) — Versión 3.0**
 > **Metodología:** `github/spec-kit`  
-> **Versión:** `2.0`  
+> **Versión:** `3.0`  
 > **Estado:** `Vision Global - Para inicio del desarrollo spec`  
 > **Última Actualización:** `2025-04-05`  
 > **Alcance Global:** Plataforma de Gobernanza Comunitaria Internacional para Asambleas Híbridas (Presencial/Virtual/Mixta) con Validación Legal Adaptativa, Moderación Inteligente, Auditoría Inmutable y Soporte para Participación Inclusiva.  
@@ -424,7 +424,7 @@ GET    /api/v1/assemblies/{id}/async-status     # Obtener estado y tiempo restan
 
 ## ✅ **9. Conclusión**
 
-Esta **Versión 4.0.0** del `governance-service` establece las bases para un sistema de gobernanza comunitaria **verdaderamente global, inclusivo, legalmente robusto y estratégicamente avanzado**. Al externalizar toda la lógica normativa al `compliance-service` y al diseñar mecanismos de participación flexibles (digital, presencial, biométrica, asíncrona, por delegación), el servicio está preparado para operar en cualquier jurisdicción del mundo.
+Esta **Versión 3.0.0** del `governance-service` establece las bases para un sistema de gobernanza comunitaria **verdaderamente global, inclusivo, legalmente robusto y estratégicamente avanzado**. Al externalizar toda la lógica normativa al `compliance-service` y al diseñar mecanismos de participación flexibles (digital, presencial, biométrica, asíncrona, por delegación), el servicio está preparado para operar en cualquier jurisdicción del mundo.
 
 La arquitectura prioriza la **trazabilidad absoluta** (event sourcing, sellos criptográficos), la **experiencia de usuario inclusiva** (múltiples métodos de validación, votación asistida, canal de aportes con IA) y la **innovación estratégica** (asambleas asíncronas, marketplace legal, productos de datos), convirtiendo a SmartEdify en la plataforma de referencia para la democracia digital en comunidades residenciales y comerciales a nivel internacional.
 
