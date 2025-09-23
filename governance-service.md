@@ -6,7 +6,7 @@
 > **Alcance Global:** Plataforma de Gobernanza Comunitaria Internacional para Asambleas Híbridas (Presencial/Virtual/Mixta) con Validación Legal Adaptativa, Moderación Inteligente, Auditoría Inmutable y Soporte para Participación Inclusiva.  
 > **Visión Internacional:** Diseñar un sistema jurídicamente agnóstico que se adapte dinámicamente a cualquier marco regulatorio local (Perú, Chile, México, España, Brasil, etc.) mediante el motor de cumplimiento (`compliance-service`), garantizando transparencia, trazabilidad y validez legal universal.
 ---
-## 🧭 **1. Visión y Justificación Global (Corregida)**
+## 🧭 **1. Visión y Justificación Global**
 
 El `governance-service` es el **corazón democrático y legal** de SmartEdify a nivel global. Su misión es **ejecutar fielmente** el ciclo de vida completo de las asambleas de propietarios — desde la iniciativa de convocatoria hasta la generación del acta final — de manera **totalmente digital, técnicamente robusta y legalmente verificable**.
 
@@ -21,9 +21,9 @@ Este servicio **NO es agnóstico en su ejecución**. Es un **ejecutor estricto d
 
 ---
 
-## 🏗️ **2. Arquitectura y Diseño Global (Corregido)**
+## 🏗️ **2. Arquitectura y Diseño Global**
 
-### **2.1. Patrones Arquitectónicos Clave (Corregidos)**
+### **2.1. Patrones Arquitectónicos Clave**
 
 | Patrón | Implementación | Justificación |
 |--------|----------------|---------------|
@@ -36,7 +36,7 @@ Este servicio **NO es agnóstico en su ejecución**. Es un **ejecutor estricto d
 | **Feature Flags (LaunchDarkly)** | Gestión de funcionalidades por tenant, país o porcentaje de usuarios. **Evaluación local sin enviar PII a terceros**. | Permite despliegues progresivos, pruebas A/B y reducción de riesgos en producción. |
 | **Circuit Breaker (Resilience4j)** | Protege las llamadas a servicios dependientes (compliance, documents, streaming). | Mejora la resiliencia y el SLA del sistema ante fallos de terceros. |
 
-### **2.2. Diagrama de Contexto Global (Mermaid) — ¡CORREGIDO!**
+### **2.2. Diagrama de Contexto Global (Mermaid)**
 
 ```mermaid
 graph TD
@@ -76,16 +76,16 @@ graph TD
 
 ---
 
-## 📦 **3. Especificación Funcional Detallada (Visión Global) — ¡CORREGIDA!**
+## 📦 **3. Especificación Funcional Detallada (Visión Global)**
 
 ### **3.1. Gestión del Ciclo de Vida de la Asamblea**
 
 *   **Crear/Editar/Eliminar Asamblea (Solo Administrador):**
-    *   Definir título, descripción, fecha/hora, modalidad (`PRESENCIAL`, `VIRTUAL`, `MIXTA`, `ASINCRONA` — **¡Corregido!**).
+    *   Definir título, descripción, fecha/hora, modalidad (`PRESENCIAL`, `VIRTUAL`, `MIXTA`, `ASINCRONA` ).
     *   Asignar un código único (ej: `ASM-2025-001`).
     *   Adjuntar documentos relevantes (reglamento, presupuestos).
     *   **NO asignar un moderador designado.** El método de designación (sorteo, votación, designación) **debe ser definido por la política del `compliance-service`**.
-    *   **Configurar reglas de sala:** Duración máxima por intervención, número de ampliaciones, política de micrófonos. Estas reglas se definen en el momento de la creación de la asamblea y se aplican una vez que se designa el moderador.
+    *   **Configurar reglas de sala:** Duración máxima por intervención, número de ampliaciones, política de micrófonos. Estas reglas se definen en el momento de iniciar la asamblea y se aplican una vez que se designa el moderador.
 
 ### **3.2. Flujos de Iniciativa y Emisión de Convocatoria**
 
@@ -97,14 +97,13 @@ graph TD
 *   **Emisión de la Convocatoria Formal (Obligatoria por el Administrador o por Iniciativa):**
     *   El sistema notifica al Administrador (o activa el flujo de iniciativa) **solo si la política lo permite**.
     *   El Administrador (o los iniciantes) eligen la fecha/hora (respetando el plazo mínimo de anticipación **definido por la política**).
+    *   **consulta al `compliance-service`** los flujos de aprobacion de la convocatoria, en caso de ser observada y vuelve al flujo El Administrador (o los iniciantes) 
     *   Se inicia la **Saga de Inmutabilidad**: generación de PDF, firma digital, hashing, notificación multicanal.
-    *   **¡Nuevo!** Se toma un **snapshot de las alícuotas** de los propietarios en el momento de la emisión de la convocatoria. Este snapshot se usa para todos los cálculos de quórum y votación de esta asamblea, garantizando reproducibilidad.
+    *   Se toma un **snapshot de las alícuotas** de los propietarios en el momento de la emisión de la convocatoria. Este snapshot se usa para todos los cálculos de quórum y votación de esta asamblea, garantizando reproducibilidad.
 
 ### **3.3. Gestión de la Sesión Híbrida (Virtual/Mixta)**
 
-*   **Validación de Asistencia (Múltiples Métodos — ¡CORREGIDO!):**
-    *   **Presentar QR Propio (Opción 1):** El usuario muestra un QR **generado por el sistema y firmado (COSE/JWS)** en su dispositivo. Otro dispositivo (o el moderador) lo escanea. El QR contiene `iss`, `aud`, `jti`, `nbf`, `exp`, `cnf` (Proof-of-Possession) y es de un solo uso.
-    *   **Escanear QR Externo (Opción 2):** El sistema muestra un QR en pantalla. El usuario lo escanea con **la cámara de otro dispositivo**. El dispositivo que escanea envía el payload decodificado al sistema.
+*   **Validación de Asistencia (Múltiples Métodos):**
     *   **Biometría (Opcional):** El usuario valida su asistencia con huella dactilar o reconocimiento facial (Touch ID, Face ID, BiometricPrompt). **Requiere token PoP (DPoP/mTLS) emitido por `identity-service`**.
     *   **Código por SMS/Email (Fallback):** El sistema envía un código de 6 dígitos. El usuario lo ingresa manualmente. **El sistema almacena un hash+salt del código, no el código en claro**.
     *   **Registro Manual por Moderador (Solo en Mixta/Presencial):** El moderador puede registrar manualmente a un asistente presencial, validando su identidad contra el `user-profiles-service`. **Requiere token PoP del moderador**.
@@ -113,13 +112,13 @@ graph TD
     *   **Automática (Por Defecto):** Los propietarios se unen a una cola FIFO al hacer clic en “Pedir Palabra”. El sistema les da la palabra automáticamente, activando un cronómetro.
     *   **Manual (Intervención del Moderador):** El moderador puede conceder réplicas, ampliar tiempos o silenciar a un participante fuera de la cola.
     *   **Designación del Moderador:** Al inicio de la asamblea, el sistema **consulta la política del `compliance-service`** para determinar el método de designación (sorteo, votación rápida, designación por órgano). **No se asigna por defecto**.
-*   **Grabación y Sello de Auditoría (¡CORREGIDO!):**
+*   **Grabación y Sello de Auditoría:**
     *   La sesión se graba y almacena en S3.
     *   Al cerrar la votación, se genera un **“Sello de Quórum”**: una **firma digital** sobre el **commit** del stream de eventos de la asamblea (altura N, hash raíz Merkle) con la **KID del tenant**.
     *   Este sello se almacena como metadato del video y se registra en un **log de transparencia**.
     *   Se genera un **QR de Auditoría** que cualquier propietario puede escanear para **verificar la firma y la integridad del video** (no solo un "OK/FAIL").
 
-### **3.4. Gestión de Votaciones (Digital y Presencial — ¡CORREGIDO!)**
+### **3.4. Gestión de Votaciones (Digital y Presencial )**
 
 *   **Votación Digital:**
     *   Los propietarios validados pueden votar desde la app/web.
@@ -134,7 +133,7 @@ graph TD
         *   La foto **NO se almacena directamente**. Se cifra y se almacena en un repositorio de evidencias con **ACL estricta**. Se guarda una referencia (`evidence_ref`) en la base de datos.
         *   Si la política **exige secreto del voto, se prohíbe adjuntar cualquier evidencia identificable**. Solo se registra el voto.
     *   Estos votos se incluyen en el cálculo de quórum y mayoría.
-*   **Votación por Delegación Digital (eProxy — ¡CORREGIDO!):**
+*   **Votación por Delegación Digital (eProxy):**
     *   Un propietario puede **delegar su voto** a otro propietario (o al administrador) mediante un formulario digital.
     *   El sistema **consulta al `compliance-service`** para validar el proveedor de firma, el certificado y su vigencia según el país del tenant.
     *   El sistema valida la identidad de ambas partes y registra el poder.
@@ -152,7 +151,7 @@ graph TD
     *   Este punto es **informativo (no votable)**.
     *   El resumen se adjunta como un PDF al acta final.
 
-### **3.6. Generación de Actas y Gamificación (¡CORREGIDO!)**
+### **3.6. Generación de Actas y Gamificación**
 
 *   **Asistente IA (Protocolo de Contexto de Modelo) para Redacción de Actas:**
     *   Durante la asamblea, el Protocolo de Contexto de Modelo analiza la transcripción (de `streaming-service`) y genera un **borrador** del acta.
@@ -165,22 +164,22 @@ graph TD
     *   Los puntos pueden canjearse por beneficios (descuentos en cuotas, uso de áreas comunes) vía integración con `finance-service`.
     *   Se muestran insignias y rankings en el dashboard.
 
-### **3.7. Asambleas Asíncronas (Async Governance — ¡CORREGIDO!)**
+### **3.7. Asambleas Asíncronas (Async Governance)**
 
 *   **Creación de Asamblea Asíncrona:**
     *   El administrador puede crear una asamblea con modalidad `ASINCRONA`.
-    *   **¡CORREGIDO!** El sistema **consulta al `compliance-service`** para verificar si la modalidad asíncrona está permitida para el país y tenant, y para el tipo de materia (whitelist de materias no críticas).
+    *   El sistema **consulta al `compliance-service`** para verificar si la modalidad asíncrona está permitida para el país y tenant, y para el tipo de materia (whitelist de materias no críticas).
     *   Se define un período de votación (ej: 72 horas).
 *   **Participación Asíncrona:**
     *   Los propietarios pueden votar y comentar en cualquier momento durante el período.
     *   El Protocolo de Contexto de Modelo genera un resumen de los debates y lo incluye en el acta.
 *   **Cierre Automático:**
     *   Al finalizar el período, la votación se cierra automáticamente y se genera el acta.
-    *   **¡CORREGIDO!** El cierre **requiere un `legalVerdict` firmado y vigente del `compliance-service`**.
+    *   El cierre **requiere un `legalVerdict` firmado y vigente del `compliance-service`**.
 
 ---
 
-## ⚙️ **4. Modelo de Datos Completo (SQL — ¡CORREGIDO!)**
+## ⚙️ **4. Modelo de Datos Completo (SQL)**
 
 ```sql
 -- Entidad: Assembly (Asamblea)
@@ -203,7 +202,7 @@ CREATE TABLE assemblies (
 CREATE TABLE assembly_initiatives (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     assembly_id UUID NOT NULL REFERENCES assemblies(id),
-    proposed_by UUID NOT NULL, -- ¡CORREGIDO! user_id externo, no FK
+    proposed_by UUID NOT NULL, -- user_id externo, no FK
     status TEXT NOT NULL, -- 'DRAFT', 'COLLECTING_ADHESIONS', 'QUOTA_ACHIEVED', 'NOTICE_EMITTED'
     required_adhesion_percentage NUMERIC NOT NULL, -- Definido por compliance-service
     current_adhesion_percentage NUMERIC NOT NULL DEFAULT 0.0,
@@ -214,7 +213,7 @@ CREATE TABLE assembly_initiatives (
 CREATE TABLE assembly_notices (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     initiative_id UUID NOT NULL REFERENCES assembly_initiatives(id),
-    issued_by UUID NOT NULL, -- ¡CORREGIDO! user_id externo
+    issued_by UUID NOT NULL, -- user_id externo
     scheduled_date TIMESTAMPTZ NOT NULL,
     pdf_url TEXT,
     hash_sha256 TEXT,
@@ -248,16 +247,16 @@ CREATE TABLE digital_votes (
     event_id UUID NOT NULL -- ¡CORREGIDO! Para idempotencia y deduplicación
 );
 
--- Entidad: ManualVote (Voto Presencial Registrado por Moderador) — ¡CORREGIDO!
+-- Entidad: ManualVote (Voto Presencial Registrado por Moderador) 
 CREATE TABLE manual_votes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     proposal_id UUID NOT NULL REFERENCES proposals(id),
-    moderator_id UUID NOT NULL, -- ¡CORREGIDO! user_id externo
-    owner_id UUID NOT NULL, -- ¡CORREGIDO! user_id externo
+    moderator_id UUID NOT NULL, --  user_id externo
+    owner_id UUID NOT NULL, --  user_id externo
     choice TEXT NOT NULL,
-    evidence_ref TEXT, -- ¡CORREGIDO! Referencia a evidencia cifrada, no URL directa
+    evidence_ref TEXT, --  Referencia a evidencia cifrada, no URL directa
     registered_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    event_id UUID NOT NULL -- ¡CORREGIDO! Para idempotencia y deduplicación
+    event_id UUID NOT NULL --  Para idempotencia y deduplicación
 );
 
 -- Entidad: AssemblySession (Sesión Virtual/Mixta)
@@ -267,18 +266,18 @@ CREATE TABLE assembly_sessions (
     video_conference_link TEXT,
     recording_url TEXT,
     recording_hash_sha256 TEXT,
-    quorum_seal TEXT, -- ¡CORREGIDO! Firma sobre el commit del stream de eventos
+    quorum_seal TEXT, --  Firma sobre el commit del stream de eventos
     is_active BOOLEAN NOT NULL DEFAULT true,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Entidad: SessionAttendee (Asistente Validado) — ¡CORREGIDO!
+-- Entidad: SessionAttendee (Asistente Validado) 
 CREATE TABLE session_attendees (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     session_id UUID NOT NULL REFERENCES assembly_sessions(id),
-    user_id UUID NOT NULL, -- ¡CORREGIDO! user_id externo
+    user_id UUID NOT NULL, -- user_id externo
     validation_method TEXT NOT NULL, -- 'QR_PRESENTED', 'QR_SCANNED', 'BIOMETRIC', 'SMS', 'EMAIL', 'MANUAL'
-    validation_hash TEXT, -- ¡CORREGIDO! Hash+salt del código, no el código en claro
+    validation_hash TEXT, --  Hash+salt del código, no el código en claro
     validated_at TIMESTAMPTZ NOT NULL,
     is_present BOOLEAN NOT NULL DEFAULT true
 );
@@ -313,7 +312,7 @@ CREATE TABLE contribution_summaries (
     generated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Entidad: ProxyVote (Votación por Delegación) — ¡NUEVO!
+-- Entidad: ProxyVote (Votación por Delegación)
 CREATE TABLE proxy_votes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     assembly_id UUID NOT NULL REFERENCES assemblies(id),
@@ -325,7 +324,7 @@ CREATE TABLE proxy_votes (
     expires_at TIMESTAMPTZ NOT NULL
 );
 
--- Entidad: AsyncAssemblySession (Para Asambleas Asíncronas) — ¡NUEVO!
+-- Entidad: AsyncAssemblySession (Para Asambleas Asíncronas)
 CREATE TABLE async_assembly_sessions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     assembly_id UUID NOT NULL REFERENCES assemblies(id),
@@ -334,7 +333,7 @@ CREATE TABLE async_assembly_sessions (
     is_active BOOLEAN NOT NULL DEFAULT true
 );
 
--- Tabla: participants (Cache local de user-profiles-service) — ¡CORREGIDO!
+-- Tabla: participants (Cache local de user-profiles-service)
 CREATE TABLE participants (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL, -- ID externo
@@ -392,7 +391,7 @@ GET    /api/v1/assemblies/{id}/async-status     # Obtener estado y tiempo restan
 
 ---
 
-## 🛡️ **6. Seguridad y Cumplimiento Global (¡CORREGIDO!)**
+## 🛡️ **6. Seguridad y Cumplimiento Global **
 
 *   **Delegación Legal:** Toda lógica de quórum, mayoría, plazos, flujos, métodos de votación y secreto del voto es proporcionada y validada en tiempo real por el `compliance-service`. **Sin `policy_id` válido, no hay operación**.
 *   **Consentimiento para Grabación:** El usuario debe aceptar explícitamente que será grabado, independientemente del método de validación de asistencia usado. Este consentimiento se registra con `timestamp`, `IP` y `device`.
@@ -407,7 +406,7 @@ GET    /api/v1/assemblies/{id}/async-status     # Obtener estado y tiempo restan
 
 ## 📈 **7. Observabilidad y Monitoreo (¡CORREGIDO!)**
 
-*   **Métricas Clave (Prometheus — ¡CORREGIDO!):**
+*   **Métricas Clave (Prometheus):**
     *   `initiative_created_total`
     *   `notice_emitted_total`
     *   `vote_cast_total` (separar `digital`, `manual`, `proxy`)
@@ -443,7 +442,7 @@ GET    /api/v1/assemblies/{id}/async-status     # Obtener estado y tiempo restan
 
 ## ✅ **9. Conclusión**
 
-Esta **Versión 4.0.0 Corregida** del `governance-service` establece las bases para un sistema de gobernanza comunitaria **verdaderamente global, inclusivo, legalmente robusto y estratégicamente avanzado**. Al externalizar toda la lógica normativa al `compliance-service` y al diseñar mecanismos de participación flexibles (digital, presencial, biométrica, asíncrona, por delegación), el servicio está preparado para operar en cualquier jurisdicción del mundo.
+Esta **Versión 3.0.0 Corregida** del `governance-service` establece las bases para un sistema de gobernanza comunitaria **verdaderamente global, inclusivo, legalmente robusto y estratégicamente avanzado**. Al externalizar toda la lógica normativa al `compliance-service` y al diseñar mecanismos de participación flexibles (digital, presencial, biométrica, asíncrona, por delegación), el servicio está preparado para operar en cualquier jurisdicción del mundo.
 
 La arquitectura prioriza la **trazabilidad absoluta** (event sourcing, sellos criptográficos), la **experiencia de usuario inclusiva** (múltiples métodos de validación, votación asistida, canal de aportes con IA) y la **innovación estratégica** (asambleas asíncronas, marketplace legal, productos de datos), convirtiendo a SmartEdify en la plataforma de referencia para la democracia digital en comunidades residenciales y comerciales a nivel internacional.
 
